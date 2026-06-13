@@ -22,7 +22,9 @@ export const Route = createFileRoute("/find")({
   }),
   component: () => (
     <ModelGate>
-      <FindPage />
+      <CameraGate>
+        <FindPage />
+      </CameraGate>
     </ModelGate>
   ),
 });

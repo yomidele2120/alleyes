@@ -14,7 +14,7 @@ export function ModelGate({ children }: { children: React.ReactNode }) {
       "Loading detector...",
       "Loading landmarks...",
       "Loading recognition...",
-      "Ready",
+      "LENS Ready",
     ];
     loadFaceApi((m) => {
       const i = steps.indexOf(m);

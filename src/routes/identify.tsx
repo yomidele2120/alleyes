@@ -22,7 +22,9 @@ export const Route = createFileRoute("/identify")({
   }),
   component: () => (
     <ModelGate>
-      <IdentifyPage />
+      <CameraGate>
+        <IdentifyPage />
+      </CameraGate>
     </ModelGate>
   ),
 });

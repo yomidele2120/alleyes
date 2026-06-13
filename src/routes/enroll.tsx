@@ -5,6 +5,7 @@ import { Trash2, UserPlus } from "lucide-react";
 import { LensNav } from "@/components/lens-nav";
 import { CameraFrame } from "@/components/camera-frame";
 import { ModelGate } from "@/components/model-gate";
+import { CameraGate } from "@/components/camera-gate";
 import { useCamera } from "@/hooks/use-camera";
 import { loadFaceApi } from "@/lib/face-api-loader";
 import {

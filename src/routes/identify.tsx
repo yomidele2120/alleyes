@@ -4,6 +4,7 @@ import { SwitchCamera } from "lucide-react";
 import { LensNav } from "@/components/lens-nav";
 import { CameraFrame } from "@/components/camera-frame";
 import { ModelGate } from "@/components/model-gate";
+import { CameraGate } from "@/components/camera-gate";
 import { useCamera } from "@/hooks/use-camera";
 import { useFaceRecognition, type Match } from "@/hooks/use-face-recognition";
 import { loadIdentities, type Identity } from "@/lib/face-store";

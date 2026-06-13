@@ -7,6 +7,7 @@ import { ModelGate } from "@/components/model-gate";
 import { useCamera } from "@/hooks/use-camera";
 import { useFaceRecognition, type Match } from "@/hooks/use-face-recognition";
 import { loadIdentities, type Identity } from "@/lib/face-store";
+import { BoundingBox } from "@/components/bounding-box";
 
 export const Route = createFileRoute("/identify")({
   head: () => ({

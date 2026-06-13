@@ -34,9 +34,8 @@ export function useFaceRecognition(
     (async () => {
       const faceapi = await loadFaceApi();
       setBusy(true);
-      const opts = new faceapi.TinyFaceDetectorOptions({
-        inputSize: 416,
-        scoreThreshold: 0.5,
+      const opts = new faceapi.SsdMobilenetv1Options({
+        minConfidence: 0.5,
       });
 
       // Build labeled descriptors when there are enrolled faces.

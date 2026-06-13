@@ -33,7 +33,12 @@ export function useCamera({ facingMode = "user" }: Options = {}) {
         }
       } catch (e) {
         setPermission("denied");
-        setError(e instanceof Error ? e.message : "Camera unavailable");
+        const err = e as { name?: string; message?: string };
+        if (err?.name === "NotAllowedError" || err?.name === "SecurityError") {
+          setError("Camera access required. Please allow camera permission and refresh.");
+        } else {
+          setError(err?.message || "Camera unavailable");
+        }
       }
     })();
 

@@ -48,7 +48,7 @@ function EnrollPage() {
     let alive = true;
     (async () => {
       const faceapi = await loadFaceApi();
-      const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
+      const opts = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 });
       const tick = async () => {
         if (!alive || !videoRef.current) return;
         try {

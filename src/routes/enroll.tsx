@@ -27,7 +27,9 @@ export const Route = createFileRoute("/enroll")({
   }),
   component: () => (
     <ModelGate>
-      <EnrollPage />
+      <CameraGate>
+        <EnrollPage />
+      </CameraGate>
     </ModelGate>
   ),
 });

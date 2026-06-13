@@ -5,6 +5,7 @@ import { Trash2, UserPlus } from "lucide-react";
 import { LensNav } from "@/components/lens-nav";
 import { CameraFrame } from "@/components/camera-frame";
 import { ModelGate } from "@/components/model-gate";
+import { CameraGate } from "@/components/camera-gate";
 import { useCamera } from "@/hooks/use-camera";
 import { loadFaceApi } from "@/lib/face-api-loader";
 import {
@@ -26,7 +27,9 @@ export const Route = createFileRoute("/enroll")({
   }),
   component: () => (
     <ModelGate>
-      <EnrollPage />
+      <CameraGate>
+        <EnrollPage />
+      </CameraGate>
     </ModelGate>
   ),
 });
@@ -48,7 +51,7 @@ function EnrollPage() {
     let alive = true;
     (async () => {
       const faceapi = await loadFaceApi();
-      const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
+      const opts = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 });
       const tick = async () => {
         if (!alive || !videoRef.current) return;
         try {

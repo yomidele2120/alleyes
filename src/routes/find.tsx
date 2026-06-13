@@ -4,6 +4,7 @@ import { Crosshair, SwitchCamera } from "lucide-react";
 import { LensNav } from "@/components/lens-nav";
 import { CameraFrame } from "@/components/camera-frame";
 import { ModelGate } from "@/components/model-gate";
+import { CameraGate } from "@/components/camera-gate";
 import { BoundingBox } from "@/components/bounding-box";
 import { useCamera } from "@/hooks/use-camera";
 import { useFaceRecognition, type Match } from "@/hooks/use-face-recognition";
@@ -21,7 +22,9 @@ export const Route = createFileRoute("/find")({
   }),
   component: () => (
     <ModelGate>
-      <FindPage />
+      <CameraGate>
+        <FindPage />
+      </CameraGate>
     </ModelGate>
   ),
 });

@@ -89,6 +89,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "LENS — Identify. Enroll. Locate." },
+      { name: "description", content: "LENS is a client-side face recognition web application for identity enrollment and live identification." },
+      { property: "og:description", content: "LENS is a client-side face recognition web application for identity enrollment and live identification." },
+      { name: "twitter:description", content: "LENS is a client-side face recognition web application for identity enrollment and live identification." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/fdcadbd3-d669-4f28-ba46-14a3d9f78b55/id-preview-cafe816f--15f5a472-e8f2-4926-b3a0-e2afb15a9a54.lovable.app-1781357020689.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/fdcadbd3-d669-4f28-ba46-14a3d9f78b55/id-preview-cafe816f--15f5a472-e8f2-4926-b3a0-e2afb15a9a54.lovable.app-1781357020689.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

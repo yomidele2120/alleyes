@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as NetworkRouteImport } from './routes/network'
 import { Route as LogRouteImport } from './routes/log'
 import { Route as IdentifyRouteImport } from './routes/identify'
 import { Route as EnrollRouteImport } from './routes/enroll'
@@ -25,6 +26,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NetworkRoute = NetworkRouteImport.update({
+  id: '/network',
+  path: '/network',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogRoute = LogRouteImport.update({
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/enroll': typeof EnrollRoute
   '/identify': typeof IdentifyRoute
   '/log': typeof LogRoute
+  '/network': typeof NetworkRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/profile/$id': typeof ProfileIdRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/enroll': typeof EnrollRoute
   '/identify': typeof IdentifyRoute
   '/log': typeof LogRoute
+  '/network': typeof NetworkRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/profile/$id': typeof ProfileIdRoute
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/enroll': typeof EnrollRoute
   '/identify': typeof IdentifyRoute
   '/log': typeof LogRoute
+  '/network': typeof NetworkRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/profile/$id': typeof ProfileIdRoute
@@ -88,6 +97,7 @@ export interface FileRouteTypes {
     | '/enroll'
     | '/identify'
     | '/log'
+    | '/network'
     | '/search'
     | '/settings'
     | '/profile/$id'
@@ -97,6 +107,7 @@ export interface FileRouteTypes {
     | '/enroll'
     | '/identify'
     | '/log'
+    | '/network'
     | '/search'
     | '/settings'
     | '/profile/$id'
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
     | '/enroll'
     | '/identify'
     | '/log'
+    | '/network'
     | '/search'
     | '/settings'
     | '/profile/$id'
@@ -116,6 +128,7 @@ export interface RootRouteChildren {
   EnrollRoute: typeof EnrollRoute
   IdentifyRoute: typeof IdentifyRoute
   LogRoute: typeof LogRoute
+  NetworkRoute: typeof NetworkRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   ProfileIdRoute: typeof ProfileIdRoute
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/network': {
+      id: '/network'
+      path: '/network'
+      fullPath: '/network'
+      preLoaderRoute: typeof NetworkRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/log': {
@@ -180,6 +200,7 @@ const rootRouteChildren: RootRouteChildren = {
   EnrollRoute: EnrollRoute,
   IdentifyRoute: IdentifyRoute,
   LogRoute: LogRoute,
+  NetworkRoute: NetworkRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   ProfileIdRoute: ProfileIdRoute,

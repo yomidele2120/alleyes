@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowRight, Crosshair, Eye, UserPlus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, Crosshair, Eye, Server, UserPlus } from "lucide-react";
 import { LensNav } from "@/components/lens-nav";
-import { loadIdentities } from "@/lib/face-store";
+import { loadIdentities, type Identity } from "@/lib/face-store";
+import { loadLog, type LogEntry } from "@/lib/detection-log";
+import { loadFeeds, type Feed } from "@/lib/feed-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -11,75 +13,200 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Private, on-device face recognition. Enroll identities and identify them live — nothing leaves your browser.",
+          "LENS dashboard: enrolled identities, active feeds, today's detections, and quick search.",
       },
     ],
   }),
-  component: Index,
+  component: Dashboard,
 });
 
-function Index() {
-  const [count, setCount] = useState(0);
-  useEffect(() => setCount(loadIdentities().length), []);
+function Dashboard() {
+  const [identities, setIdentities] = useState<Identity[]>([]);
+  const [feeds, setFeeds] = useState<Feed[]>([]);
+  const [log, setLog] = useState<LogEntry[]>([]);
+  const [q, setQ] = useState("");
+
+  useEffect(() => {
+    const sync = () => {
+      setIdentities(loadIdentities());
+      setFeeds(loadFeeds());
+      setLog(loadLog());
+    };
+    sync();
+    ["lens:identities", "lens:feeds", "lens:log"].forEach((e) =>
+      window.addEventListener(e, sync),
+    );
+    return () =>
+      ["lens:identities", "lens:feeds", "lens:log"].forEach((e) =>
+        window.removeEventListener(e, sync),
+      );
+  }, []);
+
+  const todayCount = useMemo(() => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    return log.filter((l) => l.time >= start.getTime()).length;
+  }, [log]);
+
+  const filtered = useMemo(
+    () =>
+      q
+        ? identities.filter((i) => i.name.toLowerCase().includes(q.toLowerCase()))
+        : identities.slice(0, 6),
+    [q, identities],
+  );
 
   return (
-    <div className="relative min-h-screen overflow-hidden mesh-bg">
-      <div className="absolute inset-0 grid-overlay opacity-40" />
+    <div className="relative min-h-screen overflow-hidden mesh-bg pb-28 md:pb-10">
+      <div className="absolute inset-0 grid-overlay opacity-30" />
       <div className="pointer-events-none absolute -top-32 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-primary/10 blur-[120px]" />
       <LensNav />
 
-      <main className="relative mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-center px-6 pt-28 text-center">
-        <div className="animate-fade-in inline-flex items-center gap-2 rounded-full border border-border bg-card/50 px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-          <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px] shadow-primary" />
-          On-device intelligence
-        </div>
+      <main className="relative mx-auto max-w-5xl px-5 pt-24">
+        <header className="animate-fade-in mb-8 text-center">
+          <h1 className="font-display text-5xl tracking-[0.3em]">LENS</h1>
+          <p className="mt-2 text-xs uppercase tracking-[0.4em] text-muted-foreground">
+            Command Center
+          </p>
+        </header>
 
-        <h1 className="animate-fade-in mt-8 font-display text-6xl tracking-[0.35em] sm:text-8xl">
-          LENS
-        </h1>
-        <p className="animate-fade-in mt-4 text-sm uppercase tracking-[0.4em] text-muted-foreground sm:text-base">
-          Identify · Enroll · Locate
-        </p>
+        {/* Stats row */}
+        <section className="animate-fade-in grid grid-cols-3 gap-3">
+          <StatCard label="Identities" value={identities.length} icon={UserPlus} />
+          <StatCard label="Cameras Active" value={feeds.length} icon={Server} accent />
+          <StatCard label="Detections Today" value={todayCount} icon={Eye} />
+        </section>
 
-        <p className="animate-fade-in mt-8 max-w-md text-sm text-muted-foreground/90 sm:text-base">
-          A precision instrument for recognizing the faces you choose to remember.
-          Every computation happens inside your browser.
-        </p>
+        {/* Quick actions */}
+        <section className="animate-fade-in mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <QuickLink to="/enroll" label="Enroll" icon={UserPlus} />
+          <QuickLink to="/identify" label="Identify" icon={Eye} />
+          <QuickLink to="/search" label="Search" icon={Crosshair} />
+          <QuickLink to="/network" label="Network" icon={Server} />
+        </section>
 
-        <div className="animate-fade-in mt-10 flex flex-col items-center gap-3 sm:flex-row">
-          <Link
-            to="/enroll"
-            className="glow-hover group inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium tracking-wide text-primary-foreground"
-          >
-            <UserPlus className="h-4 w-4" strokeWidth={1.8} />
-            Enroll a Face
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </Link>
-          <Link
-            to="/identify"
-            className="glow-hover inline-flex items-center gap-2 rounded-lg border border-border bg-card/60 px-6 py-3 text-sm font-medium tracking-wide text-foreground"
-          >
-            <Eye className="h-4 w-4" strokeWidth={1.8} />
-            Identify
-          </Link>
-          <Link
-            to="/find"
-            className="glow-hover inline-flex items-center gap-2 rounded-lg border border-border bg-card/60 px-6 py-3 text-sm font-medium tracking-wide text-foreground"
-          >
-            <Crosshair className="h-4 w-4" strokeWidth={1.8} />
-            Find Mode
-          </Link>
-        </div>
+        {/* Quick search */}
+        <section className="animate-fade-in mt-8">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
+            Quick search
+          </p>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Type a name to start searching..."
+            className="w-full rounded-lg border border-border bg-input/40 px-4 py-3 text-sm focus:border-primary focus:outline-none"
+          />
+          {filtered.length > 0 && (
+            <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {filtered.map((i) => (
+                <li key={i.id}>
+                  <Link
+                    to="/search"
+                    className="glow-hover flex items-center gap-3 rounded-xl border border-border bg-card/60 p-2.5"
+                  >
+                    {i.thumbnails[0] ? (
+                      <img src={i.thumbnails[0]} alt={i.name}
+                        className="h-8 w-8 rounded-full border border-border object-cover" />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs text-primary">
+                        {i.name.slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="truncate text-sm">{i.name}</span>
+                    <ArrowRight className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
-        <div className="animate-fade-in mt-10 inline-flex items-center gap-3 rounded-full border border-border bg-card/40 px-4 py-1.5 text-xs tracking-wider text-muted-foreground">
-          <span className="h-1.5 w-1.5 rounded-full bg-gold" />
-          {count} {count === 1 ? "identity" : "identities"} stored
-        </div>
+        {/* Recent detections */}
+        <section className="animate-fade-in mt-8">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
+            Recent detections
+          </p>
+          {log.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+              No detections yet — run Identify or Network.
+            </div>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {log.slice(0, 8).map((l) => (
+                <div
+                  key={l.id}
+                  className="glass min-w-[140px] flex-shrink-0 rounded-xl p-3"
+                >
+                  {l.thumbnail && (
+                    <img
+                      src={l.thumbnail}
+                      alt={l.name}
+                      className="h-16 w-full rounded-lg border border-border object-cover"
+                    />
+                  )}
+                  <p className="mt-2 truncate text-xs">{l.name}</p>
+                  <p className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground">
+                    {l.feed} · {Math.round(l.confidence * 100)}%
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </main>
 
-      <footer className="relative z-10 border-t border-border/50 py-6 text-center text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-        All processing happens on your device. No data is sent anywhere.
+      <footer className="relative z-10 mt-10 border-t border-border/50 py-6 text-center text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+        On-device intelligence. Nothing leaves your browser.
       </footer>
     </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  accent,
+}: {
+  label: string;
+  value: number;
+  icon: typeof UserPlus;
+  accent?: boolean;
+}) {
+  return (
+    <div className="glass rounded-2xl p-4">
+      <Icon
+        className="h-4 w-4"
+        strokeWidth={1.5}
+        style={{ color: accent ? "var(--gold)" : "var(--primary)" }}
+      />
+      <p className="mt-3 font-display text-3xl tabular-nums">{value}</p>
+      <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function QuickLink({
+  to,
+  label,
+  icon: Icon,
+}: {
+  to: string;
+  label: string;
+  icon: typeof UserPlus;
+}) {
+  return (
+    <Link
+      to={to}
+      className="glow-hover flex items-center justify-between rounded-xl border border-border bg-card/60 p-3"
+    >
+      <span className="flex items-center gap-2 text-sm">
+        <Icon className="h-4 w-4 text-primary" strokeWidth={1.6} />
+        {label}
+      </span>
+      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+    </Link>
   );
 }

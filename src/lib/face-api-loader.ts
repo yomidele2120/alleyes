@@ -1,5 +1,6 @@
 // Client-only face-api.js loader. Loads the library via <script> from unpkg
 // and the weights from unpkg with a GitHub raw fallback.
+// Core models load eagerly; age/gender/expression load on demand.
 import type * as FaceApi from "face-api.js";
 
 declare global {
@@ -15,6 +16,8 @@ const WEIGHT_URLS = [
 ];
 
 let loadPromise: Promise<typeof FaceApi> | null = null;
+let extrasPromise: Promise<void> | null = null;
+let workingWeightUrl: string | null = null;
 
 function injectScript(src: string) {
   return new Promise<void>((resolve, reject) => {
@@ -55,6 +58,7 @@ export function loadFaceApi(onProgress?: (msg: string) => void): Promise<typeof 
         await faceapi.nets.faceLandmark68Net.loadFromUri(url);
         onProgress?.("Loading recognition...");
         await faceapi.nets.faceRecognitionNet.loadFromUri(url);
+        workingWeightUrl = url;
         console.log("[LENS] Models loaded from:", url);
         onProgress?.("LENS Ready");
         return faceapi;
@@ -69,4 +73,24 @@ export function loadFaceApi(onProgress?: (msg: string) => void): Promise<typeof 
     );
   })();
   return loadPromise;
+}
+
+/** Loads age/gender + expression models (lazy, idempotent). */
+export function loadExtras(): Promise<void> {
+  if (extrasPromise) return extrasPromise;
+  extrasPromise = (async () => {
+    const faceapi = await loadFaceApi();
+    const url = workingWeightUrl || WEIGHT_URLS[0];
+    try {
+      await Promise.all([
+        faceapi.nets.faceExpressionNet.loadFromUri(url),
+        faceapi.nets.ageGenderNet.loadFromUri(url),
+      ]);
+    } catch (e) {
+      console.warn("[LENS] Failed to load extras", e);
+      extrasPromise = null;
+      throw e;
+    }
+  })();
+  return extrasPromise;
 }

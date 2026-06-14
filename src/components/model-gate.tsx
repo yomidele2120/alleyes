@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { loadFaceApi } from "@/lib/face-api-loader";
+import { loadFaceApi, loadExtras } from "@/lib/face-api-loader";
+import { loadSettings } from "@/lib/settings-store";
 
-// Elegant blocking loader for face-api model initialization.
 export function ModelGate({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -21,7 +21,14 @@ export function ModelGate({ children }: { children: React.ReactNode }) {
       if (i >= 0) setProgress(((i + 1) / steps.length) * 100);
       setMsg(m);
     })
-      .then(() => setReady(true))
+      .then(async () => {
+        const s = loadSettings();
+        if (s.showAge || s.showEmotion || s.showGender) {
+          setMsg("Loading intelligence...");
+          try { await loadExtras(); } catch { /* non-fatal */ }
+        }
+        setReady(true);
+      })
       .catch((e) => setErr(e instanceof Error ? e.message : "Failed to initialize"));
   }, []);
 

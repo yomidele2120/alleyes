@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { SwitchCamera } from "lucide-react";
 import { LensNav } from "@/components/lens-nav";
 import { CameraFrame } from "@/components/camera-frame";
@@ -9,6 +9,7 @@ import { useCamera } from "@/hooks/use-camera";
 import { useFaceRecognition, type Match } from "@/hooks/use-face-recognition";
 import { loadIdentities, type Identity } from "@/lib/face-store";
 import { BoundingBox } from "@/components/bounding-box";
+import { FaceIntelPanel } from "@/components/face-intel-panel";
 
 export const Route = createFileRoute("/identify")({
   head: () => ({
@@ -16,7 +17,8 @@ export const Route = createFileRoute("/identify")({
       { title: "Identify · LENS" },
       {
         name: "description",
-        content: "Live multi-face identification against your enrolled identities, fully on-device.",
+        content:
+          "Live multi-face identification against your enrolled identities, fully on-device.",
       },
     ],
   }),
@@ -34,20 +36,35 @@ function IdentifyPage() {
   const { videoRef, ready, error } = useCamera({ facingMode: facing });
   const [identities, setIdentities] = useState<Identity[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
-  const overlayRef = useRef<HTMLDivElement | null>(null);
   const [dim, setDim] = useState({ w: 0, h: 0 });
+  const [selected, setSelected] = useState<{ id: string; match: Match } | null>(null);
 
-  useEffect(() => setIdentities(loadIdentities()), []);
+  useEffect(() => {
+    const sync = () => setIdentities(loadIdentities());
+    sync();
+    window.addEventListener("lens:identities", sync);
+    return () => window.removeEventListener("lens:identities", sync);
+  }, []);
 
-  useFaceRecognition(videoRef, identities, ready, (m, d) => {
-    setMatches(m);
-    setDim(d);
-  });
+  useFaceRecognition(
+    videoRef,
+    identities,
+    ready,
+    (m, d) => {
+      setMatches(m);
+      setDim(d);
+    },
+    { feedName: "Local Camera", withExtras: true },
+  );
+
+  const selectedIdentity = selected
+    ? identities.find((i) => i.id === selected.id)
+    : null;
 
   return (
-    <div className="min-h-screen bg-background pb-10">
+    <div className="min-h-screen bg-background pb-28 md:pb-10">
       <LensNav />
-      <main className="mx-auto max-w-4xl px-4 pt-28">
+      <main className="mx-auto max-w-4xl px-4 pt-24">
         <div className="animate-fade-in mb-4 flex items-center justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">
@@ -76,14 +93,20 @@ function IdentifyPage() {
             muted
             className="h-full w-full object-cover"
           />
-          {/* Overlay layer matched to video display size */}
           <div
-            ref={overlayRef}
             className="pointer-events-none absolute inset-0"
             style={{ width: dim.w || "100%", height: dim.h || "100%" }}
           >
             {matches.map((m, i) => (
-              <BoundingBox key={i} m={m} />
+              <BoundingBox
+                key={i}
+                m={m}
+                onClick={
+                  m.identityId
+                    ? () => setSelected({ id: m.identityId!, match: m })
+                    : undefined
+                }
+              />
             ))}
           </div>
           {error && (
@@ -99,6 +122,15 @@ function IdentifyPage() {
           </p>
         )}
       </main>
+
+      {selected && selectedIdentity && (
+        <FaceIntelPanel
+          identity={selectedIdentity}
+          match={selected.match}
+          feedName="Local Camera"
+          onClose={() => setSelected(null)}
+        />
+      )}
     </div>
   );
 }
@@ -107,8 +139,11 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
   return (
     <div className="glass flex items-center gap-2 rounded-lg px-3 py-1.5">
       <span
-        className={`h-1.5 w-1.5 rounded-full ${accent ? "bg-gold" : "bg-primary"} shadow-[0_0_8px]`}
-        style={{ boxShadow: `0 0 8px var(--${accent ? "gold" : "primary"})` }}
+        className="h-1.5 w-1.5 rounded-full"
+        style={{
+          background: accent ? "var(--gold)" : "var(--primary)",
+          boxShadow: `0 0 8px ${accent ? "var(--gold)" : "var(--primary)"}`,
+        }}
       />
       <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
         {label}
@@ -117,4 +152,3 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
     </div>
   );
 }
-

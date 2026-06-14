@@ -9,19 +9,32 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as LogRouteImport } from './routes/log'
 import { Route as IdentifyRouteImport } from './routes/identify'
-import { Route as FindRouteImport } from './routes/find'
 import { Route as EnrollRouteImport } from './routes/enroll'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProfileIdRouteImport } from './routes/profile.$id'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogRoute = LogRouteImport.update({
+  id: '/log',
+  path: '/log',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IdentifyRoute = IdentifyRouteImport.update({
   id: '/identify',
   path: '/identify',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FindRoute = FindRouteImport.update({
-  id: '/find',
-  path: '/find',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EnrollRoute = EnrollRouteImport.update({
@@ -34,55 +47,108 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileIdRoute = ProfileIdRouteImport.update({
+  id: '/profile/$id',
+  path: '/profile/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/enroll': typeof EnrollRoute
-  '/find': typeof FindRoute
   '/identify': typeof IdentifyRoute
+  '/log': typeof LogRoute
+  '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
+  '/profile/$id': typeof ProfileIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/enroll': typeof EnrollRoute
-  '/find': typeof FindRoute
   '/identify': typeof IdentifyRoute
+  '/log': typeof LogRoute
+  '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
+  '/profile/$id': typeof ProfileIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/enroll': typeof EnrollRoute
-  '/find': typeof FindRoute
   '/identify': typeof IdentifyRoute
+  '/log': typeof LogRoute
+  '/search': typeof SearchRoute
+  '/settings': typeof SettingsRoute
+  '/profile/$id': typeof ProfileIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/enroll' | '/find' | '/identify'
+  fullPaths:
+    | '/'
+    | '/enroll'
+    | '/identify'
+    | '/log'
+    | '/search'
+    | '/settings'
+    | '/profile/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/enroll' | '/find' | '/identify'
-  id: '__root__' | '/' | '/enroll' | '/find' | '/identify'
+  to:
+    | '/'
+    | '/enroll'
+    | '/identify'
+    | '/log'
+    | '/search'
+    | '/settings'
+    | '/profile/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/enroll'
+    | '/identify'
+    | '/log'
+    | '/search'
+    | '/settings'
+    | '/profile/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   EnrollRoute: typeof EnrollRoute
-  FindRoute: typeof FindRoute
   IdentifyRoute: typeof IdentifyRoute
+  LogRoute: typeof LogRoute
+  SearchRoute: typeof SearchRoute
+  SettingsRoute: typeof SettingsRoute
+  ProfileIdRoute: typeof ProfileIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/log': {
+      id: '/log'
+      path: '/log'
+      fullPath: '/log'
+      preLoaderRoute: typeof LogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/identify': {
       id: '/identify'
       path: '/identify'
       fullPath: '/identify'
       preLoaderRoute: typeof IdentifyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/find': {
-      id: '/find'
-      path: '/find'
-      fullPath: '/find'
-      preLoaderRoute: typeof FindRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/enroll': {
@@ -99,15 +165,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile/$id': {
+      id: '/profile/$id'
+      path: '/profile/$id'
+      fullPath: '/profile/$id'
+      preLoaderRoute: typeof ProfileIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   EnrollRoute: EnrollRoute,
-  FindRoute: FindRoute,
   IdentifyRoute: IdentifyRoute,
+  LogRoute: LogRoute,
+  SearchRoute: SearchRoute,
+  SettingsRoute: SettingsRoute,
+  ProfileIdRoute: ProfileIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

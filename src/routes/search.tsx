@@ -8,9 +8,11 @@ import { CameraGate } from "@/components/camera-gate";
 import { BoundingBox } from "@/components/bounding-box";
 import { useCamera } from "@/hooks/use-camera";
 import { useFaceRecognition, type Match } from "@/hooks/use-face-recognition";
+import { useNightMode } from "@/hooks/use-night-mode";
 import { loadIdentities, type Identity } from "@/lib/face-store";
 import { loadSettings } from "@/lib/settings-store";
 import { chime, targetColor } from "@/lib/utils-misc";
+import { NightActivePill, NightModeToggle } from "@/components/night-mode-toggle";
 
 export const Route = createFileRoute("/search")({
   head: () => ({
@@ -37,6 +39,7 @@ function SearchPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [searching, setSearching] = useState(false);
   const { videoRef, ready, error } = useCamera({ facingMode: "environment" });
+  const { canvasRef, mode, cycleMode, lightLevel } = useNightMode(videoRef);
   const [matches, setMatches] = useState<Match[]>([]);
   const [dim, setDim] = useState({ w: 0, h: 0 });
   const [everFound, setEverFound] = useState<Set<string>>(new Set());
@@ -44,7 +47,7 @@ function SearchPage() {
   useEffect(() => setIdentities(loadIdentities()), []);
 
   useFaceRecognition(
-    videoRef,
+    canvasRef,
     identities,
     ready && searching,
     (m, d) => {
@@ -194,25 +197,25 @@ function SearchPage() {
     <div className="min-h-screen bg-background pb-28 md:pb-10">
       <LensNav />
       <main className="mx-auto max-w-4xl px-4 pt-24">
-        <button
-          onClick={() => setSearching(false)}
-          className="mb-3 inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.3em] text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-3 w-3" /> Choose Targets
-        </button>
+        <div className="mb-3 flex items-center justify-between">
+          <button
+            onClick={() => setSearching(false)}
+            className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.3em] text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-3 w-3" /> Choose Targets
+          </button>
+          <NightModeToggle mode={mode} onCycle={cycleMode} lightLevel={lightLevel} />
+        </div>
 
         <CameraFrame
           active={!located && !allFound}
           gold={located || allFound}
+          night={mode === "on" && !located && !allFound}
           className="animate-fade-in relative aspect-[4/3] w-full sm:aspect-video"
         >
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="h-full w-full object-cover"
-          />
+          <video ref={videoRef} autoPlay playsInline muted className="hidden" />
+          <canvas ref={canvasRef} className="h-full w-full object-cover" />
+          {mode === "on" && <NightActivePill />}
           <div
             className="pointer-events-none absolute inset-0"
             style={{ width: dim.w || "100%", height: dim.h || "100%" }}

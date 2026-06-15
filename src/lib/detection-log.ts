@@ -36,6 +36,12 @@ export function clearLog() {
   saveLog([]);
 }
 
+export function recentSightings(identityId: string, limit = 6): LogEntry[] {
+  return loadLog()
+    .filter((e) => e.identityId === identityId)
+    .slice(0, limit);
+}
+
 export function exportCsv(): string {
   const all = loadLog();
   const rows = [

@@ -11,6 +11,12 @@ export type Settings = {
   showUnknown: boolean;
   pinLockEnabled: boolean;
   pinHash: string | null;
+  // Night vision
+  nightModeOverride: "auto" | "on" | "off";
+  autoNightMode: boolean;
+  manualBrightnessBoost: number; // 0..100 (additive floor)
+  manualContrastBoost: number; // 1.0..2.5 (floor)
+  greenTint: boolean;
 };
 
 const KEY = "lens.settings.v1";
@@ -25,6 +31,11 @@ export const defaultSettings: Settings = {
   showUnknown: true,
   pinLockEnabled: false,
   pinHash: null,
+  nightModeOverride: "auto",
+  autoNightMode: true,
+  manualBrightnessBoost: 0,
+  manualContrastBoost: 1.0,
+  greenTint: false,
 };
 
 export function loadSettings(): Settings {

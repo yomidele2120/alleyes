@@ -18,7 +18,12 @@ export function useCamera({ facingMode = "user" }: Options = {}) {
       try {
         setReady(false);
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: {
+            facingMode,
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 },
+          },
           audio: false,
         });
         if (cancelled) {
@@ -26,6 +31,23 @@ export function useCamera({ facingMode = "user" }: Options = {}) {
           return;
         }
         setPermission("granted");
+
+        // Try to enable continuous exposure/white-balance/focus for low-light.
+        try {
+          const track = stream.getVideoTracks()[0];
+          const caps =
+            (track as MediaStreamTrack & {
+              getCapabilities?: () => Record<string, unknown>;
+            }).getCapabilities?.() ?? {};
+          const advanced: Record<string, unknown>[] = [];
+          if ("exposureMode" in caps) advanced.push({ exposureMode: "continuous" });
+          if ("whiteBalanceMode" in caps) advanced.push({ whiteBalanceMode: "continuous" });
+          if ("focusMode" in caps) advanced.push({ focusMode: "continuous" });
+          if (advanced.length) {
+            await (track.applyConstraints as (c: unknown) => Promise<void>)({ advanced }).catch(() => {});
+          }
+        } catch { /* hardware doesn't support advanced constraints */ }
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => {});

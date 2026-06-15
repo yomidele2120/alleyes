@@ -116,6 +116,48 @@ function SettingsPage() {
           <Toggle label="Auto-snapshot on detection" k="autoSnapshot" s={s} update={update} />
         </Section>
 
+        <Section title="Night Vision">
+          <Toggle label="Auto Night Mode" k="autoNightMode" s={s} update={update} />
+          <Toggle label="Green night-vision tint" k="greenTint" s={s} update={update} />
+          <label className="block">
+            <div className="mb-2 flex justify-between text-xs uppercase tracking-[0.25em] text-muted-foreground">
+              <span>Manual brightness boost</span>
+              <span>+{s.manualBrightnessBoost}</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={s.manualBrightnessBoost}
+              onChange={(e) => update({ manualBrightnessBoost: Number(e.target.value) })}
+              className="w-full accent-[var(--primary)]"
+            />
+          </label>
+          <label className="block">
+            <div className="mb-2 flex justify-between text-xs uppercase tracking-[0.25em] text-muted-foreground">
+              <span>Manual contrast boost</span>
+              <span>×{s.manualContrastBoost.toFixed(2)}</span>
+            </div>
+            <input
+              type="range"
+              min={1.0}
+              max={2.5}
+              step={0.05}
+              value={s.manualContrastBoost}
+              onChange={(e) => update({ manualContrastBoost: Number(e.target.value) })}
+              className="w-full accent-[var(--primary)]"
+            />
+          </label>
+          <div className="rounded-lg border border-border bg-card/40 px-3 py-2.5 text-xs text-muted-foreground">
+            <p>
+              Active mode:{" "}
+              <span className="text-foreground">{s.nightModeOverride.toUpperCase()}</span>
+            </p>
+            <p className="mt-1">Toggle on any camera screen with the moon icon.</p>
+          </div>
+        </Section>
+
         <Section title="Data">
           <div className="grid grid-cols-2 gap-2">
             <button

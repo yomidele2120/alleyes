@@ -17,12 +17,15 @@ export function BoundingBox({ m, color, dim, target, onClick }: Props) {
   const s = loadSettings();
   if (!m.identityId && !s.showUnknown) return null;
 
+  const night = s.nightModeOverride === "on";
   const known = m.identityId !== null;
   const opacity = dim ? 0.35 : 1;
   const accent =
     color ??
     (target
       ? "var(--gold)"
+      : night && known
+      ? "#00FF88"
       : known
       ? "var(--primary)"
       : "color-mix(in oklab, var(--muted-foreground) 80%, transparent)");
@@ -31,6 +34,19 @@ export function BoundingBox({ m, color, dim, target, onClick }: Props) {
   if (m.age != null && s.showAge) chips.push(`~${Math.round(m.age)}`);
   if (m.gender && s.showGender) chips.push(m.gender);
   const emoji = m.expression && s.showEmotion ? emotionEmoji(m.expression) : "";
+
+  const labelBg = target
+    ? "color-mix(in oklab, var(--gold) 90%, black)"
+    : night && known
+    ? "#003D22"
+    : known
+    ? accent
+    : "color-mix(in oklab, var(--muted-foreground) 70%, black)";
+  const labelColor = night && known
+    ? "#FFFFFF"
+    : target || known
+    ? "var(--background)"
+    : "var(--foreground)";
 
   return (
     <div
@@ -55,14 +71,7 @@ export function BoundingBox({ m, color, dim, target, onClick }: Props) {
     >
       <div
         className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em]"
-        style={{
-          background: target
-            ? "color-mix(in oklab, var(--gold) 90%, black)"
-            : known
-            ? accent
-            : "color-mix(in oklab, var(--muted-foreground) 70%, black)",
-          color: target || known ? "var(--background)" : "var(--foreground)",
-        }}
+        style={{ background: labelBg, color: labelColor }}
       >
         {emoji && <span className="mr-1">{emoji}</span>}
         {m.label}

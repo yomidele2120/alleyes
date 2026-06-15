@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { X } from "lucide-react";
+import { useMemo } from "react";
 import type { Identity } from "@/lib/face-store";
 import type { Match } from "@/hooks/use-face-recognition";
 import { emotionEmoji } from "@/lib/utils-misc";
+import { recentSightings } from "@/lib/detection-log";
 
 export function FaceIntelPanel({
   identity,
@@ -15,9 +17,11 @@ export function FaceIntelPanel({
   feedName?: string;
   onClose: () => void;
 }) {
+  const sightings = useMemo(() => recentSightings(identity.id, 8), [identity.id]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-background/70 backdrop-blur-sm">
-      <div className="glass animate-fade-in w-full max-w-md rounded-t-3xl p-6 sm:mb-6 sm:rounded-3xl">
+      <div className="glass animate-fade-in max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-3xl p-6 sm:mb-6 sm:rounded-3xl">
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
             {identity.thumbnails[0] ? (
@@ -67,6 +71,44 @@ export function FaceIntelPanel({
             <Stat label="Emotion" value={`${emotionEmoji(match.expression)} ${match.expression}`} />
           )}
         </div>
+
+        {sightings.length > 0 && (
+          <div className="mt-5">
+            <p className="mb-2 text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+              Previous Sightings · {sightings.length}
+            </p>
+            <div className="grid grid-cols-4 gap-2">
+              {sightings.map((s) => (
+                <div
+                  key={s.id}
+                  className="overflow-hidden rounded-lg border border-border bg-card/60"
+                  title={`${s.feed} — ${new Date(s.time).toLocaleString()}`}
+                >
+                  {s.thumbnail ? (
+                    <img
+                      src={s.thumbnail}
+                      alt=""
+                      className="h-16 w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-16 w-full bg-muted" />
+                  )}
+                  <div className="px-1.5 py-1">
+                    <p className="truncate text-[9px] uppercase tracking-[0.18em]">
+                      {s.feed}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground">
+                      {new Date(s.time).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <Link
           to="/profile/$id"

@@ -4,21 +4,41 @@ type Props = {
   children: ReactNode;
   active?: boolean;
   gold?: boolean;
+  night?: boolean;
   className?: string;
 };
 
 // Camera viewport with corner brackets + optional scan-line / glow states.
-export function CameraFrame({ children, active, gold, className = "" }: Props) {
-  const cornerColor = gold ? "border-gold" : active ? "border-primary" : "border-border";
+export function CameraFrame({ children, active, gold, night, className = "" }: Props) {
+  const cornerStyle = night
+    ? { borderColor: "#00FF88" }
+    : undefined;
+  const cornerColor = gold
+    ? "border-gold"
+    : night
+    ? ""
+    : active
+    ? "border-primary"
+    : "border-border";
   const glow = gold
     ? "animate-gold-pulse"
-    : active
+    : active && !night
     ? "animate-border-pulse"
     : "";
+  const wrapperStyle = night
+    ? {
+        boxShadow:
+          "0 0 24px color-mix(in oklab, #00FF88 40%, transparent), inset 0 0 30px color-mix(in oklab, #00FF88 10%, transparent)",
+      }
+    : undefined;
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border border-border bg-black/60 ${glow} ${className}`}
+      className={`relative overflow-hidden rounded-2xl border bg-black/60 ${glow} ${className}`}
+      style={{
+        borderColor: night ? "color-mix(in oklab, #00FF88 50%, transparent)" : undefined,
+        ...wrapperStyle,
+      }}
     >
       {children}
 
@@ -34,13 +54,24 @@ export function CameraFrame({ children, active, gold, className = "" }: Props) {
         <span
           key={i}
           className={`pointer-events-none absolute h-6 w-6 transition-colors ${cornerColor} ${pos}`}
+          style={cornerStyle}
         />
       ))}
 
       {/* Scan line when active */}
       {active && !gold && (
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px overflow-visible">
-          <div className="animate-scan-line h-px w-full bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_12px_2px] shadow-primary" />
+          <div
+            className="animate-scan-line h-px w-full"
+            style={{
+              background: night
+                ? "linear-gradient(90deg, transparent, #00FF88, transparent)"
+                : "linear-gradient(90deg, transparent, var(--primary), transparent)",
+              boxShadow: night
+                ? "0 0 12px 2px #00FF88"
+                : "0 0 12px 2px var(--primary)",
+            }}
+          />
         </div>
       )}
     </div>

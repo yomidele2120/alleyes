@@ -117,7 +117,20 @@ function EnrollPage() {
       return;
     }
     capturedDescriptors.current.push(lastDescriptor.current);
-    capturedThumbs.current.push(snapshotVideo(videoRef.current, 96));
+    const src = canvasRef.current;
+    if (src) {
+      try {
+        const c = document.createElement("canvas");
+        c.width = 96;
+        c.height = 96;
+        c.getContext("2d")?.drawImage(src, 0, 0, 96, 96);
+        capturedThumbs.current.push(c.toDataURL("image/jpeg", 0.7));
+      } catch {
+        capturedThumbs.current.push(videoRef.current ? snapshotVideo(videoRef.current, 96) : "");
+      }
+    } else if (videoRef.current) {
+      capturedThumbs.current.push(snapshotVideo(videoRef.current, 96));
+    }
     const next = step + 1;
     if (next >= STEPS.length) {
       setLocked(true);
@@ -160,6 +173,23 @@ function EnrollPage() {
 
         {/* Progress bar */}
         <div className="mx-auto mb-3 flex max-w-md items-center gap-2">
+        <header className="animate-fade-in mb-6 text-center">
+          <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">
+            Multi-angle capture
+          </p>
+          <h1 className="mt-2 font-display text-4xl tracking-[0.15em]">Enroll Identity</h1>
+          <div className="mt-3 flex items-center justify-center">
+            <NightModeToggle mode={mode} onCycle={cycleMode} lightLevel={lightLevel} />
+          </div>
+          {nightActive && (
+            <p className="mt-3 text-[10px] uppercase tracking-[0.25em]" style={{ color: "#00FF88" }}>
+              Tip: For best results enroll the same person again in normal light, e.g. "{name || "Name"} (Day)" and "{name || "Name"} (Night)"
+            </p>
+          )}
+        </header>
+
+        {/* Progress bar */}
+        <div className="mx-auto mb-3 flex max-w-md items-center gap-2">
           {STEPS.map((s, i) => (
             <div
               key={s.key}
@@ -180,15 +210,15 @@ function EnrollPage() {
         <CameraFrame
           active={faceDetected && !locked}
           gold={locked}
-          className="animate-fade-in aspect-[4/3] w-full sm:aspect-video"
+          night={nightActive && !locked}
+          className="animate-fade-in relative aspect-[4/3] w-full sm:aspect-video"
         >
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
+          <video ref={videoRef} autoPlay playsInline muted className="hidden" />
+          <canvas
+            ref={canvasRef}
             className="h-full w-full object-cover [transform:scaleX(-1)]"
           />
+          {nightActive && <NightActivePill />}
           {!ready && !error && (
             <div className="absolute inset-0 flex items-center justify-center text-xs uppercase tracking-[0.3em] text-muted-foreground">
               Requesting camera...
@@ -209,7 +239,7 @@ function EnrollPage() {
           )}
           <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-border bg-background/70 px-3 py-1 text-[10px] uppercase tracking-[0.3em]">
             {faceDetected ? (
-              <span className="text-primary">Face detected</span>
+              <span style={nightActive ? { color: "#00FF88" } : undefined} className={nightActive ? "" : "text-primary"}>Face detected</span>
             ) : (
               <span className="text-muted-foreground">Searching...</span>
             )}

@@ -32,6 +32,7 @@ export function useNightMode(videoRef: React.RefObject<HTMLVideoElement | null>)
   settingsRef.current = settings;
   const levelRef = useRef(lightLevel);
   levelRef.current = lightLevel;
+  const activeRef = useRef(false);
 
   const cycleMode = () => {
     const next: NightMode =
@@ -126,8 +127,6 @@ export function useNightMode(videoRef: React.RefObject<HTMLVideoElement | null>)
       cancelAnimationFrame(raf);
     };
   }, [videoRef]);
-
-  const activeRef = useRef(false);
 
   return { canvasRef, mode, cycleMode, lightLevel, active };
 }

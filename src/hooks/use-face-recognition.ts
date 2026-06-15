@@ -29,7 +29,7 @@ export type RecognitionOptions = {
 const LOG_THROTTLE_MS = 10_000;
 
 export function useFaceRecognition(
-  videoRef: React.RefObject<HTMLVideoElement | null>,
+  sourceRef: React.RefObject<HTMLVideoElement | HTMLCanvasElement | null>,
   identities: Identity[],
   enabled: boolean,
   onMatches: (m: Match[], displaySize: { w: number; h: number }) => void,

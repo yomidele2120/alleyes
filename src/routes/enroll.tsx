@@ -179,29 +179,6 @@ function EnrollPage() {
           )}
         </header>
 
-        {/* Progress bar */}
-        <div className="mx-auto mb-3 flex max-w-md items-center gap-2">
-          <header className="hidden">
-            <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">
-            Multi-angle capture
-          </p>
-          <h1 className="mt-2 font-display text-4xl tracking-[0.15em]">Enroll Identity</h1>
-          <div className="mt-3 flex items-center justify-center">
-            <NightModeToggle mode={mode} onCycle={cycleMode} lightLevel={lightLevel} />
-          </div>
-          <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">
-            Multi-angle capture
-          </p>
-          <h1 className="mt-2 font-display text-4xl tracking-[0.15em]">Enroll Identity</h1>
-          <div className="mt-3 flex items-center justify-center">
-            <NightModeToggle mode={mode} onCycle={cycleMode} lightLevel={lightLevel} />
-          </div>
-          {nightActive && (
-            <p className="mt-3 text-[10px] uppercase tracking-[0.25em]" style={{ color: "#00FF88" }}>
-              Tip: For best results enroll the same person again in normal light, e.g. "{name || "Name"} (Day)" and "{name || "Name"} (Night)"
-            </p>
-          )}
-        </header>
 
         {/* Progress bar */}
         <div className="mx-auto mb-3 flex max-w-md items-center gap-2">

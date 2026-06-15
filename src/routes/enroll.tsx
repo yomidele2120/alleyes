@@ -7,6 +7,7 @@ import { CameraFrame } from "@/components/camera-frame";
 import { ModelGate } from "@/components/model-gate";
 import { CameraGate } from "@/components/camera-gate";
 import { useCamera } from "@/hooks/use-camera";
+import { useNightMode } from "@/hooks/use-night-mode";
 import { loadFaceApi } from "@/lib/face-api-loader";
 import {
   addIdentity,
@@ -15,6 +16,7 @@ import {
   type Identity,
 } from "@/lib/face-store";
 import { snapshotVideo } from "@/lib/utils-misc";
+import { NightActivePill, NightModeToggle } from "@/components/night-mode-toggle";
 
 export const Route = createFileRoute("/enroll")({
   head: () => ({

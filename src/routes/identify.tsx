@@ -7,9 +7,11 @@ import { ModelGate } from "@/components/model-gate";
 import { CameraGate } from "@/components/camera-gate";
 import { useCamera } from "@/hooks/use-camera";
 import { useFaceRecognition, type Match } from "@/hooks/use-face-recognition";
+import { useNightMode } from "@/hooks/use-night-mode";
 import { loadIdentities, type Identity } from "@/lib/face-store";
 import { BoundingBox } from "@/components/bounding-box";
 import { FaceIntelPanel } from "@/components/face-intel-panel";
+import { NightActivePill, NightModeToggle } from "@/components/night-mode-toggle";
 
 export const Route = createFileRoute("/identify")({
   head: () => ({
@@ -18,7 +20,7 @@ export const Route = createFileRoute("/identify")({
       {
         name: "description",
         content:
-          "Live multi-face identification against your enrolled identities, fully on-device.",
+          "Live multi-face identification against your enrolled identities, fully on-device, day or night.",
       },
     ],
   }),
@@ -34,6 +36,7 @@ export const Route = createFileRoute("/identify")({
 function IdentifyPage() {
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const { videoRef, ready, error } = useCamera({ facingMode: facing });
+  const { canvasRef, mode, cycleMode, lightLevel, active } = useNightMode(videoRef);
   const [identities, setIdentities] = useState<Identity[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [dim, setDim] = useState({ w: 0, h: 0 });
@@ -47,7 +50,7 @@ function IdentifyPage() {
   }, []);
 
   useFaceRecognition(
-    videoRef,
+    canvasRef,
     identities,
     ready,
     (m, d) => {
@@ -61,20 +64,23 @@ function IdentifyPage() {
     ? identities.find((i) => i.id === selected.id)
     : null;
 
+  const isNightActive = mode === "on";
+
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-10">
       <LensNav />
       <main className="mx-auto max-w-4xl px-4 pt-24">
-        <div className="animate-fade-in mb-4 flex items-center justify-between">
+        <div className="animate-fade-in mb-4 flex items-center justify-between gap-2">
           <div>
             <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">
               Live recognition
             </p>
             <h1 className="mt-1 font-display text-3xl tracking-[0.18em]">Identify</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Stat label="Faces" value={matches.length} />
             <Stat label="Enrolled" value={identities.length} accent />
+            <NightModeToggle mode={mode} onCycle={cycleMode} lightLevel={lightLevel} />
             <button
               onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
               className="glow-hover ml-1 rounded-lg border border-border bg-card/60 p-2 text-muted-foreground hover:text-foreground sm:hidden"
@@ -85,14 +91,14 @@ function IdentifyPage() {
           </div>
         </div>
 
-        <CameraFrame active className="animate-fade-in aspect-[4/3] w-full sm:aspect-video">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="h-full w-full object-cover"
-          />
+        <CameraFrame
+          active
+          night={isNightActive}
+          className="animate-fade-in relative aspect-[4/3] w-full sm:aspect-video"
+        >
+          <video ref={videoRef} autoPlay playsInline muted className="hidden" />
+          <canvas ref={canvasRef} className="h-full w-full object-cover" />
+          {isNightActive && <NightActivePill />}
           <div
             className="pointer-events-none absolute inset-0"
             style={{ width: dim.w || "100%", height: dim.h || "100%" }}
@@ -114,6 +120,12 @@ function IdentifyPage() {
               {error}
             </div>
           )}
+          {/* Light-level pill (mobile, always visible) */}
+          <div className="absolute bottom-2 left-2 sm:hidden">
+            <div className="glass rounded-full px-2 py-1 text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
+              {active ? "ENHANCED" : "RAW"}
+            </div>
+          </div>
         </CameraFrame>
 
         {identities.length === 0 && (

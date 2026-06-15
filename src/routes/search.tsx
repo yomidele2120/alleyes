@@ -197,25 +197,25 @@ function SearchPage() {
     <div className="min-h-screen bg-background pb-28 md:pb-10">
       <LensNav />
       <main className="mx-auto max-w-4xl px-4 pt-24">
-        <button
-          onClick={() => setSearching(false)}
-          className="mb-3 inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.3em] text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-3 w-3" /> Choose Targets
-        </button>
+        <div className="mb-3 flex items-center justify-between">
+          <button
+            onClick={() => setSearching(false)}
+            className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.3em] text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-3 w-3" /> Choose Targets
+          </button>
+          <NightModeToggle mode={mode} onCycle={cycleMode} lightLevel={lightLevel} />
+        </div>
 
         <CameraFrame
           active={!located && !allFound}
           gold={located || allFound}
+          night={mode === "on" && !located && !allFound}
           className="animate-fade-in relative aspect-[4/3] w-full sm:aspect-video"
         >
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="h-full w-full object-cover"
-          />
+          <video ref={videoRef} autoPlay playsInline muted className="hidden" />
+          <canvas ref={canvasRef} className="h-full w-full object-cover" />
+          {mode === "on" && <NightActivePill />}
           <div
             className="pointer-events-none absolute inset-0"
             style={{ width: dim.w || "100%", height: dim.h || "100%" }}

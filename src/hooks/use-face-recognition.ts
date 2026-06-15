@@ -80,8 +80,10 @@ export function useFaceRecognition(
 
       const tick = async () => {
         if (!alive) return;
-        const video = videoRef.current;
-        if (!video || video.readyState < 2) {
+        const src = sourceRef.current;
+        const isVideo = src instanceof HTMLVideoElement;
+        const isCanvas = src instanceof HTMLCanvasElement;
+        if (!src || (isVideo && (src as HTMLVideoElement).readyState < 2) || (isCanvas && (src as HTMLCanvasElement).width === 0)) {
           timer = window.setTimeout(tick, 200);
           return;
         }
@@ -91,19 +93,15 @@ export function useFaceRecognition(
             optsRef.current.withExtras &&
             (s.showAge || s.showEmotion || s.showGender);
 
-          let chain = faceapi
-            .detectAllFaces(video, detectorOpts)
+          const detections = await faceapi
+            .detectAllFaces(src as HTMLVideoElement, detectorOpts)
             .withFaceLandmarks()
             .withFaceDescriptors();
-
-          // face-api requires withFaceLandmarks before withFaceExpressions/withAgeAndGender
-          // but withFaceDescriptors returns FaceLandmarks+Descriptor object; chain extras separately.
-          const detections = await chain;
           let extras: Array<{ age: number; gender: string; genderProbability: number; expressions?: Record<string, number> }> = [];
           if (wantExtras && detections.length) {
             try {
               const extra = await faceapi
-                .detectAllFaces(video, detectorOpts)
+                .detectAllFaces(src as HTMLVideoElement, detectorOpts)
                 .withFaceLandmarks()
                 .withFaceExpressions()
                 .withAgeAndGender();
@@ -117,10 +115,10 @@ export function useFaceRecognition(
           }
 
           const matcher = buildMatcher();
-          const sourceW = video.videoWidth;
-          const sourceH = video.videoHeight;
-          const displayW = video.clientWidth;
-          const displayH = video.clientHeight;
+          const sourceW = isVideo ? (src as HTMLVideoElement).videoWidth : (src as HTMLCanvasElement).width;
+          const sourceH = isVideo ? (src as HTMLVideoElement).videoHeight : (src as HTMLCanvasElement).height;
+          const displayW = (src as HTMLElement).clientWidth;
+          const displayH = (src as HTMLElement).clientHeight;
           const scaleX = displayW / Math.max(1, sourceW);
           const scaleY = displayH / Math.max(1, sourceH);
 
@@ -132,7 +130,6 @@ export function useFaceRecognition(
             const distance = best ? best.distance : 1;
             const confidence = Math.max(0, Math.min(1, 1 - distance));
 
-            // Map extras by nearest box center.
             let age: number | undefined;
             let gender: string | undefined;
             let genderProbability: number | undefined;
@@ -173,10 +170,9 @@ export function useFaceRecognition(
               const key = `${m.identityId ?? "u"}:${feed}`;
               const last = lastLogRef.current.get(key) || 0;
               if (now - last < LOG_THROTTLE_MS) continue;
-              // Don't log unknowns unless user wants them shown.
               if (!m.identityId && !s.showUnknown) continue;
               lastLogRef.current.set(key, now);
-              const thumb = snapshotVideo(video, 96);
+              const thumb = snapshotSource(src, 96);
               addLogEntry({
                 identityId: m.identityId,
                 name: m.label,
@@ -204,7 +200,22 @@ export function useFaceRecognition(
       setBusy(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, videoRef]);
+  }, [enabled, sourceRef]);
 
   return { busy };
+}
+
+function snapshotSource(src: HTMLVideoElement | HTMLCanvasElement, size: number): string {
+  try {
+    if (src instanceof HTMLVideoElement) return snapshotVideo(src, size);
+    const c = document.createElement("canvas");
+    c.width = size;
+    c.height = size;
+    const ctx = c.getContext("2d");
+    if (!ctx) return "";
+    ctx.drawImage(src, 0, 0, size, size);
+    return c.toDataURL("image/jpeg", 0.7);
+  } catch {
+    return "";
+  }
 }

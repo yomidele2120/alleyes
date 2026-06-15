@@ -8,9 +8,11 @@ import { CameraGate } from "@/components/camera-gate";
 import { BoundingBox } from "@/components/bounding-box";
 import { useCamera } from "@/hooks/use-camera";
 import { useFaceRecognition, type Match } from "@/hooks/use-face-recognition";
+import { useNightMode } from "@/hooks/use-night-mode";
 import { loadIdentities, type Identity } from "@/lib/face-store";
 import { loadSettings } from "@/lib/settings-store";
 import { chime, targetColor } from "@/lib/utils-misc";
+import { NightActivePill, NightModeToggle } from "@/components/night-mode-toggle";
 
 export const Route = createFileRoute("/search")({
   head: () => ({
@@ -37,6 +39,7 @@ function SearchPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [searching, setSearching] = useState(false);
   const { videoRef, ready, error } = useCamera({ facingMode: "environment" });
+  const { canvasRef, mode, cycleMode, lightLevel } = useNightMode(videoRef);
   const [matches, setMatches] = useState<Match[]>([]);
   const [dim, setDim] = useState({ w: 0, h: 0 });
   const [everFound, setEverFound] = useState<Set<string>>(new Set());
@@ -44,7 +47,7 @@ function SearchPage() {
   useEffect(() => setIdentities(loadIdentities()), []);
 
   useFaceRecognition(
-    videoRef,
+    canvasRef,
     identities,
     ready && searching,
     (m, d) => {

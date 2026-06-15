@@ -35,16 +35,16 @@ export function useCamera({ facingMode = "user" }: Options = {}) {
         // Try to enable continuous exposure/white-balance/focus for low-light.
         try {
           const track = stream.getVideoTracks()[0];
-          // getCapabilities is not in lib.dom.d.ts on all browsers
-          const caps = (track as MediaStreamTrack & {
-            getCapabilities?: () => Record<string, unknown>;
-          }).getCapabilities?.();
-          const advanced: MediaTrackConstraintSet[] = [];
-          if (caps?.exposureMode) advanced.push({ exposureMode: "continuous" } as MediaTrackConstraintSet);
-          if (caps?.whiteBalanceMode) advanced.push({ whiteBalanceMode: "continuous" } as MediaTrackConstraintSet);
-          if (caps?.focusMode) advanced.push({ focusMode: "continuous" } as MediaTrackConstraintSet);
+          const caps =
+            (track as MediaStreamTrack & {
+              getCapabilities?: () => Record<string, unknown>;
+            }).getCapabilities?.() ?? {};
+          const advanced: Record<string, unknown>[] = [];
+          if ("exposureMode" in caps) advanced.push({ exposureMode: "continuous" });
+          if ("whiteBalanceMode" in caps) advanced.push({ whiteBalanceMode: "continuous" });
+          if ("focusMode" in caps) advanced.push({ focusMode: "continuous" });
           if (advanced.length) {
-            await track.applyConstraints({ advanced }).catch(() => {});
+            await (track.applyConstraints as (c: unknown) => Promise<void>)({ advanced }).catch(() => {});
           }
         } catch { /* hardware doesn't support advanced constraints */ }
 

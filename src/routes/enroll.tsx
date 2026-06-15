@@ -58,6 +58,8 @@ function speak(text: string) {
 
 function EnrollPage() {
   const { videoRef, ready, error } = useCamera({ facingMode: "user" });
+  const { canvasRef, mode, cycleMode, lightLevel, active: nightActive } =
+    useNightMode(videoRef);
   const [name, setName] = useState("");
   const [step, setStep] = useState(0);
   const [faceDetected, setFaceDetected] = useState(false);
@@ -73,7 +75,7 @@ function EnrollPage() {
     if (step < STEPS.length) speak(STEPS[step].prompt);
   }, [step]);
 
-  // Live detection — single-face for enrollment loop.
+  // Live detection runs against the enhanced canvas so dark enrollment works.
   useEffect(() => {
     if (!ready) return;
     let raf = 0;
@@ -82,20 +84,23 @@ function EnrollPage() {
       const faceapi = await loadFaceApi();
       const opts = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 });
       const tick = async () => {
-        if (!alive || !videoRef.current) return;
-        try {
-          const result = await faceapi
-            .detectSingleFace(videoRef.current, opts)
-            .withFaceLandmarks()
-            .withFaceDescriptor();
-          if (result) {
-            setFaceDetected(true);
-            lastDescriptor.current = result.descriptor;
-          } else {
-            setFaceDetected(false);
-            lastDescriptor.current = null;
-          }
-        } catch { /* ignore */ }
+        if (!alive) return;
+        const src = canvasRef.current;
+        if (src && src.width > 0) {
+          try {
+            const result = await faceapi
+              .detectSingleFace(src, opts)
+              .withFaceLandmarks()
+              .withFaceDescriptor();
+            if (result) {
+              setFaceDetected(true);
+              lastDescriptor.current = result.descriptor;
+            } else {
+              setFaceDetected(false);
+              lastDescriptor.current = null;
+            }
+          } catch { /* ignore */ }
+        }
         raf = requestAnimationFrame(tick);
       };
       raf = requestAnimationFrame(tick);
@@ -104,7 +109,7 @@ function EnrollPage() {
       alive = false;
       cancelAnimationFrame(raf);
     };
-  }, [ready, videoRef]);
+  }, [ready, canvasRef]);
 
   const captureStep = () => {
     if (!lastDescriptor.current || !videoRef.current) {

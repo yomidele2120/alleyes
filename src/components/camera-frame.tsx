@@ -39,6 +39,7 @@ export function CameraFrame({ children, active, gold, night, className = "", sty
       style={{
         borderColor: night ? "color-mix(in oklab, #00FF88 50%, transparent)" : undefined,
         ...wrapperStyle,
+        ...style,
       }}
     >
       {children}

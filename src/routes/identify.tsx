@@ -113,10 +113,15 @@ function IdentifyPage() {
         <CameraFrame
           active
           night={isNightActive}
-          className="animate-fade-in relative aspect-[4/3] w-full sm:aspect-video"
+          className="animate-fade-in relative w-full"
+          style={{ aspectRatio: aspect ? `${aspect}` : "4 / 3" }}
         >
           <video ref={videoRef} autoPlay playsInline muted className="hidden" />
-          <canvas ref={canvasRef} className="h-full w-full object-cover" />
+          <canvas
+            ref={canvasRef}
+            className="absolute inset-0 h-full w-full"
+            style={{ objectFit: "cover" }}
+          />
           {isNightActive && <NightActivePill />}
           <div
             className="pointer-events-none absolute inset-0"

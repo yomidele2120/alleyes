@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 type Props = {
   children: ReactNode;
@@ -6,10 +6,11 @@ type Props = {
   gold?: boolean;
   night?: boolean;
   className?: string;
+  style?: CSSProperties;
 };
 
 // Camera viewport with corner brackets + optional scan-line / glow states.
-export function CameraFrame({ children, active, gold, night, className = "" }: Props) {
+export function CameraFrame({ children, active, gold, night, className = "", style }: Props) {
   const cornerStyle = night
     ? { borderColor: "#00FF88" }
     : undefined;
@@ -38,6 +39,7 @@ export function CameraFrame({ children, active, gold, night, className = "" }: P
       style={{
         borderColor: night ? "color-mix(in oklab, #00FF88 50%, transparent)" : undefined,
         ...wrapperStyle,
+        ...style,
       }}
     >
       {children}

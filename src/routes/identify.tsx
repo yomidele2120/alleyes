@@ -41,6 +41,7 @@ function IdentifyPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [dim, setDim] = useState({ w: 0, h: 0 });
   const [selected, setSelected] = useState<{ id: string; match: Match } | null>(null);
+  const [aspect, setAspect] = useState<number | null>(null);
 
   useEffect(() => {
     const sync = () => setIdentities(loadIdentities());
@@ -48,6 +49,24 @@ function IdentifyPage() {
     window.addEventListener("lens:identities", sync);
     return () => window.removeEventListener("lens:identities", sync);
   }, []);
+
+  // Track the camera's native aspect ratio so the frame doesn't distort.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const update = () => {
+      if (v.videoWidth && v.videoHeight) {
+        setAspect(v.videoWidth / v.videoHeight);
+      }
+    };
+    v.addEventListener("loadedmetadata", update);
+    v.addEventListener("resize", update);
+    update();
+    return () => {
+      v.removeEventListener("loadedmetadata", update);
+      v.removeEventListener("resize", update);
+    };
+  }, [videoRef, facing]);
 
   useFaceRecognition(
     canvasRef,
@@ -94,10 +113,15 @@ function IdentifyPage() {
         <CameraFrame
           active
           night={isNightActive}
-          className="animate-fade-in relative aspect-[4/3] w-full sm:aspect-video"
+          className="animate-fade-in relative w-full"
+          style={{ aspectRatio: aspect ? `${aspect}` : "4 / 3" }}
         >
           <video ref={videoRef} autoPlay playsInline muted className="hidden" />
-          <canvas ref={canvasRef} className="h-full w-full object-cover" />
+          <canvas
+            ref={canvasRef}
+            className="absolute inset-0 h-full w-full"
+            style={{ objectFit: "cover" }}
+          />
           {isNightActive && <NightActivePill />}
           <div
             className="pointer-events-none absolute inset-0"

@@ -41,6 +41,7 @@ function IdentifyPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [dim, setDim] = useState({ w: 0, h: 0 });
   const [selected, setSelected] = useState<{ id: string; match: Match } | null>(null);
+  const [aspect, setAspect] = useState<number | null>(null);
 
   useEffect(() => {
     const sync = () => setIdentities(loadIdentities());
@@ -48,6 +49,24 @@ function IdentifyPage() {
     window.addEventListener("lens:identities", sync);
     return () => window.removeEventListener("lens:identities", sync);
   }, []);
+
+  // Track the camera's native aspect ratio so the frame doesn't distort.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const update = () => {
+      if (v.videoWidth && v.videoHeight) {
+        setAspect(v.videoWidth / v.videoHeight);
+      }
+    };
+    v.addEventListener("loadedmetadata", update);
+    v.addEventListener("resize", update);
+    update();
+    return () => {
+      v.removeEventListener("loadedmetadata", update);
+      v.removeEventListener("resize", update);
+    };
+  }, [videoRef, facing]);
 
   useFaceRecognition(
     canvasRef,

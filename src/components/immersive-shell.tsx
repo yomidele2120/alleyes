@@ -121,15 +121,35 @@ export function CameraStage({
   const accent = gold ? "#C9A84C" : night ? "#00FF88" : "var(--primary)";
   return (
     <div className="absolute inset-0 bg-black">
-      <video ref={videoRef} autoPlay playsInline muted className="hidden" />
-      <canvas
-        ref={canvasRef}
+      {/* Visible feed — native video preserves intrinsic aspect via object-cover,
+          stays at full camera framerate, and is never stretched. */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
         className="absolute inset-0 h-full w-full"
         style={{
           objectFit: "cover",
           transform: mirror ? "scaleX(-1)" : undefined,
+          filter: night ? "brightness(1.35) contrast(1.25) saturate(0.85)" : undefined,
         }}
       />
+      {/* Detection canvas — fills the stage so clientWidth/Height match the
+          visible video for correct bounding-box mapping, but is fully transparent. */}
+      <canvas
+        ref={canvasRef}
+        aria-hidden
+        className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
+      />
+
+      {night && (
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ background: "radial-gradient(ellipse at center, rgba(0,255,136,0.06), rgba(0,255,136,0.14) 80%)", mixBlendMode: "screen" }}
+        />
+      )}
+
 
       {/* Corner brackets */}
       {(

@@ -2,8 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Check, Trash2 } from "lucide-react";
-import { LensNav } from "@/components/lens-nav";
-import { CameraFrame } from "@/components/camera-frame";
 import { ModelGate } from "@/components/model-gate";
 import { CameraGate } from "@/components/camera-gate";
 import { useCamera } from "@/hooks/use-camera";
@@ -17,6 +15,7 @@ import {
 } from "@/lib/face-store";
 import { snapshotVideo } from "@/lib/utils-misc";
 import { NightActivePill, NightModeToggle } from "@/components/night-mode-toggle";
+import { ImmersiveShell, CameraStage } from "@/components/immersive-shell";
 
 export const Route = createFileRoute("/enroll")({
   head: () => ({
@@ -65,6 +64,7 @@ function EnrollPage() {
   const [faceDetected, setFaceDetected] = useState(false);
   const [identities, setIdentities] = useState<Identity[]>([]);
   const [locked, setLocked] = useState(false);
+  const [showList, setShowList] = useState(false);
 
   const capturedDescriptors = useRef<Float32Array[]>([]);
   const capturedThumbs = useRef<string[]>([]);
@@ -75,7 +75,6 @@ function EnrollPage() {
     if (step < STEPS.length) speak(STEPS[step].prompt);
   }, [step]);
 
-  // Live detection runs against the enhanced canvas so dark enrollment works.
   useEffect(() => {
     if (!ready) return;
     let raf = 0;
@@ -132,11 +131,8 @@ function EnrollPage() {
       capturedThumbs.current.push(snapshotVideo(videoRef.current, 96));
     }
     const next = step + 1;
-    if (next >= STEPS.length) {
-      setLocked(true);
-    } else {
-      setStep(next);
-    }
+    if (next >= STEPS.length) setLocked(true);
+    else setStep(next);
   };
 
   const finish = () => {
@@ -161,85 +157,37 @@ function EnrollPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-28 md:pb-10">
-      <LensNav />
-      <main className="mx-auto max-w-3xl px-4 pt-24">
-        <header className="animate-fade-in mb-6 text-center">
-          <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">
-            Multi-angle capture
-          </p>
-          <h1 className="mt-2 font-display text-4xl tracking-[0.15em]">Enroll Identity</h1>
-          <div className="mt-3 flex items-center justify-center">
-            <NightModeToggle mode={mode} onCycle={cycleMode} lightLevel={lightLevel} />
+    <ImmersiveShell
+      title="ENROLL"
+      subtitle={locked ? "5 / 5 captured" : `${step}/5 · ${STEPS[step].prompt}`}
+      right={
+        <>
+          <NightModeToggle mode={mode} onCycle={cycleMode} lightLevel={lightLevel} />
+          <button
+            onClick={() => setShowList((s) => !s)}
+            className="rounded-full bg-white/10 px-3 py-1.5 text-[10px] uppercase tracking-[0.25em] text-foreground backdrop-blur transition-colors hover:bg-white/20"
+          >
+            {identities.length} Saved
+          </button>
+        </>
+      }
+      bottom={
+        <div className="glass rounded-2xl p-3">
+          {/* Progress */}
+          <div className="mb-3 flex items-center gap-1.5">
+            {STEPS.map((s, i) => (
+              <div
+                key={s.key}
+                className={`h-1 flex-1 rounded-full transition-colors ${
+                  i < (locked ? STEPS.length : step)
+                    ? "bg-primary"
+                    : i === step && !locked
+                    ? "bg-primary/40"
+                    : "bg-white/15"
+                }`}
+              />
+            ))}
           </div>
-          {nightActive && (
-            <p className="mt-3 text-[10px] uppercase tracking-[0.25em]" style={{ color: "#00FF88" }}>
-              Tip: For best results enroll the same person again in normal light, e.g. "{name || "Name"} (Day)" and "{name || "Name"} (Night)"
-            </p>
-          )}
-        </header>
-
-
-        {/* Progress bar */}
-        <div className="mx-auto mb-3 flex max-w-md items-center gap-2">
-          {STEPS.map((s, i) => (
-            <div
-              key={s.key}
-              className={`h-1 flex-1 rounded-full transition-colors ${
-                i < (locked ? STEPS.length : step)
-                  ? "bg-primary"
-                  : i === step && !locked
-                  ? "bg-primary/40"
-                  : "bg-border"
-              }`}
-            />
-          ))}
-        </div>
-        <p className="mb-4 text-center text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
-          {locked ? "5 / 5 Captured" : `${step}/5 — ${STEPS[step].prompt}`}
-        </p>
-
-        <CameraFrame
-          active={faceDetected && !locked}
-          gold={locked}
-          night={nightActive && !locked}
-          className="animate-fade-in relative aspect-[4/3] w-full sm:aspect-video"
-        >
-          <video ref={videoRef} autoPlay playsInline muted className="hidden" />
-          <canvas
-            ref={canvasRef}
-            className="h-full w-full object-cover [transform:scaleX(-1)]"
-          />
-          {nightActive && <NightActivePill />}
-          {!ready && !error && (
-            <div className="absolute inset-0 flex items-center justify-center text-xs uppercase tracking-[0.3em] text-muted-foreground">
-              Requesting camera...
-            </div>
-          )}
-          {error && (
-            <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-xs uppercase tracking-[0.25em] text-destructive">
-              {error}
-            </div>
-          )}
-          {locked && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/40">
-              <div className="rounded-full px-5 py-2 text-xs font-semibold uppercase tracking-[0.35em] text-background animate-gold-pulse"
-                   style={{ background: "var(--gold)" }}>
-                Identity Locked
-              </div>
-            </div>
-          )}
-          <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-border bg-background/70 px-3 py-1 text-[10px] uppercase tracking-[0.3em]">
-            {faceDetected ? (
-              <span style={nightActive ? { color: "#00FF88" } : undefined} className={nightActive ? "" : "text-primary"}>Face detected</span>
-            ) : (
-              <span className="text-muted-foreground">Searching...</span>
-            )}
-          </div>
-        </CameraFrame>
-
-        {/* Capture / Save controls */}
-        <div className="animate-fade-in glass mt-5 rounded-2xl p-4 sm:p-5">
           {!locked ? (
             <button
               onClick={captureStep}
@@ -249,69 +197,111 @@ function EnrollPage() {
               Capture {step + 1} of 5
             </button>
           ) : (
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Subject name"
-                className="flex-1 rounded-lg border border-border bg-input/40 px-4 py-3 text-sm focus:border-primary focus:outline-none"
+                className="flex-1 rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
               <button
                 onClick={finish}
                 className="glow-hover inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground"
               >
-                <Check className="h-4 w-4" />
-                Save Identity
+                <Check className="h-4 w-4" /> Save Identity
               </button>
             </div>
           )}
         </div>
-
-        {/* Enrolled list */}
-        <section className="mt-8">
-          <p className="mb-3 text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
-            Enrolled · {identities.length}
-          </p>
-          {identities.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              No identities yet. Capture all 5 angles above.
+      }
+    >
+      <CameraStage
+        videoRef={videoRef}
+        canvasRef={canvasRef}
+        mirror
+        night={nightActive && !locked}
+        gold={locked}
+        active={faceDetected && !locked}
+        error={error}
+        topPill={nightActive ? <NightActivePill /> : undefined}
+        bottomPill={
+          <div className="rounded-full border border-white/15 bg-black/60 px-3 py-1 text-[10px] uppercase tracking-[0.3em] backdrop-blur">
+            {faceDetected ? (
+              <span style={nightActive ? { color: "#00FF88" } : undefined} className={nightActive ? "" : "text-primary"}>
+                Face detected
+              </span>
+            ) : (
+              <span className="text-muted-foreground">Searching…</span>
+            )}
+          </div>
+        }
+        overlay={
+          locked ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+              <div
+                className="rounded-full px-5 py-2 text-xs font-semibold uppercase tracking-[0.35em] text-background animate-gold-pulse"
+                style={{ background: "var(--gold)" }}
+              >
+                Identity Locked
+              </div>
             </div>
-          ) : (
-            <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {identities.map((i) => (
-                <li
-                  key={i.id}
-                  className="glow-hover flex items-center justify-between rounded-xl border border-border bg-card/60 p-3"
-                >
-                  <div className="flex items-center gap-3">
-                    {i.thumbnails[0] ? (
-                      <img src={i.thumbnails[0]} alt={i.name}
-                        className="h-10 w-10 rounded-full border border-border object-cover" />
-                    ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 font-display text-base text-primary">
-                        {i.name.slice(0, 1).toUpperCase()}
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-sm">{i.name}</p>
-                      <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-                        {i.descriptors.length} angle{i.descriptors.length === 1 ? "" : "s"}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => onDelete(i.id)}
-                    className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                    aria-label={`Delete ${i.name}`}
+          ) : null
+        }
+      />
+
+      {showList && (
+        <div
+          className="absolute inset-0 z-20 overflow-y-auto bg-black/85 px-4 pb-6 pt-4 backdrop-blur"
+          onClick={() => setShowList(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <p className="mb-3 text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
+              Enrolled · {identities.length}
+            </p>
+            {identities.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-white/15 p-6 text-center text-sm text-muted-foreground">
+                No identities yet.
+              </div>
+            ) : (
+              <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {identities.map((i) => (
+                  <li
+                    key={i.id}
+                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3"
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      </main>
-    </div>
+                    <div className="flex min-w-0 items-center gap-3">
+                      {i.thumbnails[0] ? (
+                        <img
+                          src={i.thumbnails[0]}
+                          alt={i.name}
+                          className="h-10 w-10 shrink-0 rounded-full border border-white/15 object-cover"
+                        />
+                      ) : (
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/15 font-display text-base text-primary">
+                          {i.name.slice(0, 1).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate text-sm">{i.name}</p>
+                        <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                          {i.descriptors.length} angle{i.descriptors.length === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => onDelete(i.id)}
+                      className="shrink-0 rounded-md p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                      aria-label={`Delete ${i.name}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+    </ImmersiveShell>
   );
 }

@@ -119,8 +119,14 @@ export function useFaceRecognition(
           const sourceH = isVideo ? (src as HTMLVideoElement).videoHeight : (src as HTMLCanvasElement).height;
           const displayW = (src as HTMLElement).clientWidth;
           const displayH = (src as HTMLElement).clientHeight;
-          const scaleX = displayW / Math.max(1, sourceW);
-          const scaleY = displayH / Math.max(1, sourceH);
+          // object-fit: cover math — pick the larger scale so the source fills
+          // the display, then offset by the cropped overflow so bounding boxes
+          // land on the actual face in the visible frame.
+          const cover = Math.max(displayW / Math.max(1, sourceW), displayH / Math.max(1, sourceH));
+          const scaleX = cover;
+          const scaleY = cover;
+          const offsetX = (displayW - sourceW * cover) / 2;
+          const offsetY = (displayH - sourceH * cover) / 2;
 
           const matches: Match[] = detections.map((d, idx) => {
             const best = matcher ? matcher.findBestMatch(d.descriptor) : null;
@@ -146,8 +152,8 @@ export function useFaceRecognition(
 
             return {
               box: {
-                x: d.detection.box.x * scaleX,
-                y: d.detection.box.y * scaleY,
+                x: d.detection.box.x * scaleX + offsetX,
+                y: d.detection.box.y * scaleY + offsetY,
                 width: d.detection.box.width * scaleX,
                 height: d.detection.box.height * scaleY,
               },

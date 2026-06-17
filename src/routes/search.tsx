@@ -1,8 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Crosshair, Play, ArrowLeft } from "lucide-react";
+import { Crosshair, Play } from "lucide-react";
 import { LensNav } from "@/components/lens-nav";
-import { CameraFrame } from "@/components/camera-frame";
 import { ModelGate } from "@/components/model-gate";
 import { CameraGate } from "@/components/camera-gate";
 import { BoundingBox } from "@/components/bounding-box";
@@ -13,6 +12,7 @@ import { loadIdentities, type Identity } from "@/lib/face-store";
 import { loadSettings } from "@/lib/settings-store";
 import { chime, targetColor } from "@/lib/utils-misc";
 import { NightActivePill, NightModeToggle } from "@/components/night-mode-toggle";
+import { ImmersiveShell, CameraStage } from "@/components/immersive-shell";
 
 export const Route = createFileRoute("/search")({
   head: () => ({
@@ -41,8 +41,8 @@ function SearchPage() {
   const { videoRef, ready, error } = useCamera({ facingMode: "environment" });
   const { canvasRef, mode, cycleMode, lightLevel } = useNightMode(videoRef);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [dim, setDim] = useState({ w: 0, h: 0 });
   const [everFound, setEverFound] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
 
   useEffect(() => setIdentities(loadIdentities()), []);
 
@@ -50,10 +50,8 @@ function SearchPage() {
     canvasRef,
     identities,
     ready && searching,
-    (m, d) => {
+    (m) => {
       setMatches(m);
-      setDim(d);
-      // chime on new target acquisition
       const newFound = new Set(everFound);
       let changed = false;
       for (const match of m) {
@@ -103,7 +101,7 @@ function SearchPage() {
             </p>
             <h1 className="mt-1 font-display text-4xl tracking-[0.15em]">Search</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Select one or more targets. Search runs against all faces in frame.
+              Select one or more targets. Search runs full-screen against all faces in frame.
             </p>
           </header>
 
@@ -192,34 +190,55 @@ function SearchPage() {
   const located = single && foundIds.has(targets[0].id);
   const foundCount = targets.filter((t) => foundIds.has(t.id)).length;
   const allFound = foundCount === targets.length && targets.length > 0;
+  const isNight = mode === "on" && !located && !allFound;
 
   return (
-    <div className="min-h-screen bg-background pb-28 md:pb-10">
-      <LensNav />
-      <main className="mx-auto max-w-4xl px-4 pt-24">
-        <div className="mb-3 flex items-center justify-between">
-          <button
-            onClick={() => setSearching(false)}
-            className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.3em] text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-3 w-3" /> Choose Targets
-          </button>
-          <NightModeToggle mode={mode} onCycle={cycleMode} lightLevel={lightLevel} />
+    <ImmersiveShell
+      title="SEARCH"
+      subtitle={
+        single
+          ? located
+            ? `Located — ${targets[0].name}`
+            : `Scanning for ${targets[0].name}`
+          : `${foundCount} / ${targets.length} located`
+      }
+      onBack={() => {
+        setSearching(false);
+        navigate({ to: "/search" });
+      }}
+      right={<NightModeToggle mode={mode} onCycle={cycleMode} lightLevel={lightLevel} />}
+      bottom={
+        <div className="glass flex flex-wrap items-center justify-center gap-2 rounded-2xl px-3 py-2">
+          {targets.map((t) => {
+            const found = foundIds.has(t.id);
+            const c = targetColorMap.get(t.id)!;
+            return (
+              <span
+                key={t.id}
+                className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.2em]"
+                style={{ background: `${c}22`, color: c }}
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${found ? "" : "animate-pulse"}`}
+                  style={{ background: c }}
+                />
+                {t.name} · {found ? "FOUND" : "…"}
+              </span>
+            );
+          })}
         </div>
-
-        <CameraFrame
-          active={!located && !allFound}
-          gold={located || allFound}
-          night={mode === "on" && !located && !allFound}
-          className="animate-fade-in relative aspect-[4/3] w-full sm:aspect-video"
-        >
-          <video ref={videoRef} autoPlay playsInline muted className="hidden" />
-          <canvas ref={canvasRef} className="h-full w-full object-cover" />
-          {mode === "on" && <NightActivePill />}
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{ width: dim.w || "100%", height: dim.h || "100%" }}
-          >
+      }
+    >
+      <CameraStage
+        videoRef={videoRef}
+        canvasRef={canvasRef}
+        night={isNight}
+        gold={located || allFound}
+        active={ready && !located && !allFound}
+        error={error}
+        topPill={mode === "on" ? <NightActivePill /> : undefined}
+        overlay={
+          <>
             {matches.map((m, i) => {
               const isTarget = m.identityId && selected.has(m.identityId);
               const color = isTarget ? targetColorMap.get(m.identityId!) : undefined;
@@ -233,60 +252,9 @@ function SearchPage() {
                 />
               );
             })}
-          </div>
-
-          {/* Banner */}
-          <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 w-[92%] sm:w-auto">
-            {single ? (
-              located ? (
-                <div className="mx-auto w-fit rounded-full px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.3em] text-background animate-gold-pulse"
-                     style={{ background: "var(--gold)" }}>
-                  Target Located — {targets[0].name}
-                </div>
-              ) : (
-                <div className="glass mx-auto w-fit flex items-center gap-2 rounded-full px-4 py-1.5 text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                  Scanning for {targets[0].name}
-                </div>
-              )
-            ) : (
-              <div className="glass mx-auto flex max-w-full flex-wrap items-center justify-center gap-2 rounded-2xl px-3 py-2">
-                <span className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                  {allFound
-                    ? "All Targets Located"
-                    : `${foundCount} of ${targets.length} Targets Located`}
-                </span>
-                {targets.map((t) => {
-                  const found = foundIds.has(t.id);
-                  const c = targetColorMap.get(t.id)!;
-                  return (
-                    <span
-                      key={t.id}
-                      className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.2em]"
-                      style={{
-                        background: `${c}22`,
-                        color: c,
-                      }}
-                    >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${found ? "" : "animate-pulse"}`}
-                        style={{ background: c }}
-                      />
-                      {t.name} · {found ? "FOUND" : "..."}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {error && (
-            <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-xs uppercase tracking-[0.25em] text-destructive">
-              {error}
-            </div>
-          )}
-        </CameraFrame>
-      </main>
-    </div>
+          </>
+        }
+      />
+    </ImmersiveShell>
   );
 }

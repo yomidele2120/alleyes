@@ -152,8 +152,8 @@ export function useFaceRecognition(
 
             return {
               box: {
-                x: d.detection.box.x * scaleX,
-                y: d.detection.box.y * scaleY,
+                x: d.detection.box.x * scaleX + offsetX,
+                y: d.detection.box.y * scaleY + offsetY,
                 width: d.detection.box.width * scaleX,
                 height: d.detection.box.height * scaleY,
               },

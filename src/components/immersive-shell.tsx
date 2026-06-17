@@ -135,12 +135,14 @@ export function CameraStage({
           filter: night ? "brightness(1.35) contrast(1.25) saturate(0.85)" : undefined,
         }}
       />
-      {/* Hidden detection canvas — face-api reads from this off-screen buffer. */}
+      {/* Detection canvas — fills the stage so clientWidth/Height match the
+          visible video for correct bounding-box mapping, but is fully transparent. */}
       <canvas
         ref={canvasRef}
         aria-hidden
-        style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
+        className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
       />
+
       {night && (
         <div
           className="pointer-events-none absolute inset-0"

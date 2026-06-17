@@ -1,8 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { SwitchCamera } from "lucide-react";
-import { LensNav } from "@/components/lens-nav";
-import { CameraFrame } from "@/components/camera-frame";
 import { ModelGate } from "@/components/model-gate";
 import { CameraGate } from "@/components/camera-gate";
 import { useCamera } from "@/hooks/use-camera";
@@ -12,6 +10,7 @@ import { loadIdentities, type Identity } from "@/lib/face-store";
 import { BoundingBox } from "@/components/bounding-box";
 import { FaceIntelPanel } from "@/components/face-intel-panel";
 import { NightActivePill, NightModeToggle } from "@/components/night-mode-toggle";
+import { ImmersiveShell, CameraStage } from "@/components/immersive-shell";
 
 export const Route = createFileRoute("/identify")({
   head: () => ({
@@ -36,12 +35,10 @@ export const Route = createFileRoute("/identify")({
 function IdentifyPage() {
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const { videoRef, ready, error } = useCamera({ facingMode: facing });
-  const { canvasRef, mode, cycleMode, lightLevel, active } = useNightMode(videoRef);
+  const { canvasRef, mode, cycleMode, lightLevel } = useNightMode(videoRef);
   const [identities, setIdentities] = useState<Identity[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [dim, setDim] = useState({ w: 0, h: 0 });
   const [selected, setSelected] = useState<{ id: string; match: Match } | null>(null);
-  const [aspect, setAspect] = useState<number | null>(null);
 
   useEffect(() => {
     const sync = () => setIdentities(loadIdentities());
@@ -50,32 +47,11 @@ function IdentifyPage() {
     return () => window.removeEventListener("lens:identities", sync);
   }, []);
 
-  // Track the camera's native aspect ratio so the frame doesn't distort.
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    const update = () => {
-      if (v.videoWidth && v.videoHeight) {
-        setAspect(v.videoWidth / v.videoHeight);
-      }
-    };
-    v.addEventListener("loadedmetadata", update);
-    v.addEventListener("resize", update);
-    update();
-    return () => {
-      v.removeEventListener("loadedmetadata", update);
-      v.removeEventListener("resize", update);
-    };
-  }, [videoRef, facing]);
-
   useFaceRecognition(
     canvasRef,
     identities,
     ready,
-    (m, d) => {
-      setMatches(m);
-      setDim(d);
-    },
+    (m) => setMatches(m),
     { feedName: "Local Camera", withExtras: true },
   );
 
@@ -86,78 +62,59 @@ function IdentifyPage() {
   const isNightActive = mode === "on";
 
   return (
-    <div className="min-h-screen bg-background pb-28 md:pb-10">
-      <LensNav />
-      <main className="mx-auto max-w-4xl px-4 pt-24">
-        <div className="animate-fade-in mb-4 flex items-center justify-between gap-2">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">
-              Live recognition
-            </p>
-            <h1 className="mt-1 font-display text-3xl tracking-[0.18em]">Identify</h1>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Stat label="Faces" value={matches.length} />
-            <Stat label="Enrolled" value={identities.length} accent />
+    <>
+      <ImmersiveShell
+        title="IDENTIFY"
+        subtitle={`${matches.length} face${matches.length === 1 ? "" : "s"} · ${identities.length} enrolled`}
+        right={
+          <>
             <NightModeToggle mode={mode} onCycle={cycleMode} lightLevel={lightLevel} />
             <button
               onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
-              className="glow-hover ml-1 rounded-lg border border-border bg-card/60 p-2 text-muted-foreground hover:text-foreground sm:hidden"
+              className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-foreground backdrop-blur transition-colors hover:bg-white/20"
               aria-label="Flip camera"
             >
               <SwitchCamera className="h-4 w-4" />
             </button>
-          </div>
-        </div>
-
-        <CameraFrame
-          active
+          </>
+        }
+        bottom={
+          identities.length === 0 ? (
+            <p className="text-center text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
+              No enrolled identities — every face reads as UNIDENTIFIED
+            </p>
+          ) : (
+            <p className="text-center text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+              Tap a labeled face to view full intel
+            </p>
+          )
+        }
+      >
+        <CameraStage
+          videoRef={videoRef}
+          canvasRef={canvasRef}
+          mirror={facing === "user"}
           night={isNightActive}
-          className="animate-fade-in relative w-full"
-          style={{ aspectRatio: aspect ? `${aspect}` : "4 / 3" }}
-        >
-          <video ref={videoRef} autoPlay playsInline muted className="hidden" />
-          <canvas
-            ref={canvasRef}
-            className="absolute inset-0 h-full w-full"
-            style={{ objectFit: "cover" }}
-          />
-          {isNightActive && <NightActivePill />}
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{ width: dim.w || "100%", height: dim.h || "100%" }}
-          >
-            {matches.map((m, i) => (
-              <BoundingBox
-                key={i}
-                m={m}
-                onClick={
-                  m.identityId
-                    ? () => setSelected({ id: m.identityId!, match: m })
-                    : undefined
-                }
-              />
-            ))}
-          </div>
-          {error && (
-            <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-xs uppercase tracking-[0.25em] text-destructive">
-              {error}
+          active={ready}
+          error={error}
+          topPill={isNightActive ? <NightActivePill /> : undefined}
+          overlay={
+            <div className="pointer-events-auto absolute inset-0">
+              {matches.map((m, i) => (
+                <BoundingBox
+                  key={i}
+                  m={m}
+                  onClick={
+                    m.identityId
+                      ? () => setSelected({ id: m.identityId!, match: m })
+                      : undefined
+                  }
+                />
+              ))}
             </div>
-          )}
-          {/* Light-level pill (mobile, always visible) */}
-          <div className="absolute bottom-2 left-2 sm:hidden">
-            <div className="glass rounded-full px-2 py-1 text-[9px] uppercase tracking-[0.25em] text-muted-foreground">
-              {active ? "ENHANCED" : "RAW"}
-            </div>
-          </div>
-        </CameraFrame>
-
-        {identities.length === 0 && (
-          <p className="mt-5 text-center text-xs uppercase tracking-[0.3em] text-muted-foreground">
-            No enrolled identities — every face will read as UNIDENTIFIED
-          </p>
-        )}
-      </main>
+          }
+        />
+      </ImmersiveShell>
 
       {selected && selectedIdentity && (
         <FaceIntelPanel
@@ -167,24 +124,6 @@ function IdentifyPage() {
           onClose={() => setSelected(null)}
         />
       )}
-    </div>
-  );
-}
-
-function Stat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
-  return (
-    <div className="glass flex items-center gap-2 rounded-lg px-3 py-1.5">
-      <span
-        className="h-1.5 w-1.5 rounded-full"
-        style={{
-          background: accent ? "var(--gold)" : "var(--primary)",
-          boxShadow: `0 0 8px ${accent ? "var(--gold)" : "var(--primary)"}`,
-        }}
-      />
-      <span className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-        {label}
-      </span>
-      <span className="font-display text-sm tabular-nums">{value}</span>
-    </div>
+    </>
   );
 }

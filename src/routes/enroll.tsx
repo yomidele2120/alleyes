@@ -38,9 +38,12 @@ export const Route = createFileRoute("/enroll")({
 });
 
 const STEPS = [
-  { key: "front", prompt: "Look straight at the camera" },
-  { key: "left", prompt: "Turn slightly left" },
-  { key: "right", prompt: "Turn slightly right" },
+  { key: "front-1", prompt: "Look straight at the camera" },
+  { key: "front-2", prompt: "Hold steady — second straight shot" },
+  { key: "left-1", prompt: "Turn slightly left" },
+  { key: "left-2", prompt: "Hold left — second shot" },
+  { key: "right-1", prompt: "Turn slightly right" },
+  { key: "right-2", prompt: "Hold right — second shot" },
   { key: "up", prompt: "Tilt your head up" },
   { key: "down", prompt: "Tilt your head down" },
 ] as const;

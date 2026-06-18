@@ -162,7 +162,7 @@ function EnrollPage() {
   return (
     <ImmersiveShell
       title="ENROLL"
-      subtitle={locked ? "5 / 5 captured" : `${step}/5 · ${STEPS[step].prompt}`}
+      subtitle={locked ? `${STEPS.length} / ${STEPS.length} captured` : `${step}/${STEPS.length} · ${STEPS[step].prompt}`}
       right={
         <>
           <NightModeToggle mode={mode} onCycle={cycleMode} lightLevel={lightLevel} />
@@ -197,7 +197,7 @@ function EnrollPage() {
               disabled={!faceDetected}
               className="glow-hover w-full rounded-lg bg-primary px-5 py-3 text-sm font-medium uppercase tracking-[0.25em] text-primary-foreground disabled:opacity-40"
             >
-              Capture {step + 1} of 5
+              Capture {step + 1} of {STEPS.length}
             </button>
           ) : (
             <div className="flex flex-col gap-2 sm:flex-row">

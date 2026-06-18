@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Crosshair, Play } from "lucide-react";
+import { Crosshair, Play, SwitchCamera } from "lucide-react";
 import { LensNav } from "@/components/lens-nav";
 import { ModelGate } from "@/components/model-gate";
 import { CameraGate } from "@/components/camera-gate";
@@ -38,7 +38,8 @@ function SearchPage() {
   const [identities, setIdentities] = useState<Identity[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [searching, setSearching] = useState(false);
-  const { videoRef, ready, error } = useCamera({ facingMode: "environment" });
+  const [facing, setFacing] = useState<"user" | "environment">("environment");
+  const { videoRef, ready, error } = useCamera({ facingMode: facing });
   const { canvasRef, mode, cycleMode, lightLevel } = useNightMode(videoRef);
   const [matches, setMatches] = useState<Match[]>([]);
   const [everFound, setEverFound] = useState<Set<string>>(new Set());
@@ -206,7 +207,18 @@ function SearchPage() {
         setSearching(false);
         navigate({ to: "/search" });
       }}
-      right={<NightModeToggle mode={mode} onCycle={cycleMode} lightLevel={lightLevel} />}
+      right={
+        <>
+          <NightModeToggle mode={mode} onCycle={cycleMode} lightLevel={lightLevel} />
+          <button
+            onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
+            className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-foreground backdrop-blur transition-colors hover:bg-white/20"
+            aria-label="Flip camera"
+          >
+            <SwitchCamera className="h-4 w-4" />
+          </button>
+        </>
+      }
       bottom={
         <div className="glass flex flex-wrap items-center justify-center gap-2 rounded-2xl px-3 py-2">
           {targets.map((t) => {

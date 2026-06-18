@@ -11,6 +11,7 @@ import {
   addIdentity,
   loadIdentities,
   removeIdentity,
+  saveIdentities,
   type Identity,
 } from "@/lib/face-store";
 import { snapshotVideo } from "@/lib/utils-misc";
@@ -138,14 +139,63 @@ function EnrollPage() {
     else setStep(next);
   };
 
-  const finish = () => {
+  const finish = async () => {
     if (!name.trim()) {
       toast.error("Enter a name first");
       return;
     }
+    // Duplicate-face check: if any enrolled identity matches the first
+    // captured descriptor above 70%, ask the user before creating a new one.
+    const existing = loadIdentities();
+    if (existing.length && capturedDescriptors.current.length) {
+      try {
+        const faceapi = await loadFaceApi();
+        const labeled = existing.map(
+          (i) =>
+            new faceapi.LabeledFaceDescriptors(
+              i.id,
+              i.descriptors.map((d) => new Float32Array(d)),
+            ),
+        );
+        const matcher = new faceapi.FaceMatcher(labeled, 0.42);
+        const best = matcher.findBestMatch(capturedDescriptors.current[0]);
+        const conf = 1 - best.distance;
+        if (best.label !== "unknown" && conf >= 0.7) {
+          const match = existing.find((i) => i.id === best.label);
+          const ok = confirm(
+            `This face looks like ${match?.name ?? "an existing identity"} (${Math.round(conf * 100)}%).\n\nOK = add these angles to ${match?.name}\nCancel = create a separate identity.`,
+          );
+          if (ok && match) {
+            const merged = [
+              ...match.descriptors.map((d) => new Float32Array(d)),
+              ...capturedDescriptors.current,
+            ];
+            const mergedThumbs = [...match.thumbnails, ...capturedThumbs.current];
+            const items = existing.map((i) =>
+              i.id === match.id
+                ? {
+                    ...i,
+                    descriptors: merged.map((d) => Array.from(d)),
+                    thumbnails: mergedThumbs,
+                  }
+                : i,
+            );
+            saveIdentities(items);
+            toast.success(`Added ${capturedDescriptors.current.length} angles to ${match.name}`);
+            resetCapture();
+            setIdentities(loadIdentities());
+            return;
+          }
+        }
+      } catch { /* fall through to normal save */ }
+    }
     const id = addIdentity(name.trim(), capturedDescriptors.current, capturedThumbs.current);
     toast.success(`Identity Locked: ${id.name}`);
     setIdentities(loadIdentities());
+    resetCapture();
+  };
+
+  const resetCapture = () => {
     setName("");
     setStep(0);
     setLocked(false);

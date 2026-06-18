@@ -128,13 +128,14 @@ export function useFaceRecognition(
           const offsetX = (displayW - sourceW * cover) / 2;
           const offsetY = (displayH - sourceH * cover) / 2;
 
+          const MIN_DISPLAY_CONF = 0.6; // hard floor — never label below 60%
           const matches: Match[] = detections.map((d, idx) => {
             const best = matcher ? matcher.findBestMatch(d.descriptor) : null;
-            const matched = best && best.label !== "unknown";
-            const id = matched ? best.label : null;
-            const identity = id ? idsRef.current.find((i) => i.id === id) : undefined;
             const distance = best ? best.distance : 1;
             const confidence = Math.max(0, Math.min(1, 1 - distance));
+            const matched = best && best.label !== "unknown" && confidence >= MIN_DISPLAY_CONF;
+            const id = matched ? best.label : null;
+            const identity = id ? idsRef.current.find((i) => i.id === id) : undefined;
 
             let age: number | undefined;
             let gender: string | undefined;

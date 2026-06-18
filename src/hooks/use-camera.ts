@@ -17,15 +17,24 @@ export function useCamera({ facingMode = "user" }: Options = {}) {
     (async () => {
       try {
         setReady(false);
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode,
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            frameRate: { ideal: 30 },
-          },
-          audio: false,
-        });
+        const baseVideo = {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30 },
+        };
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { ...baseVideo, facingMode: { ideal: facingMode } },
+            audio: false,
+          });
+        } catch {
+          // Fallback: many desktops/laptops only have a front cam; ignore
+          // facingMode and use any available device so Search doesn't blank.
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: baseVideo,
+            audio: false,
+          });
+        }
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;

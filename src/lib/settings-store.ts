@@ -22,7 +22,7 @@ export type Settings = {
 const KEY = "lens.settings.v1";
 
 export const defaultSettings: Settings = {
-  confidenceThreshold: 0.5,
+  confidenceThreshold: 0.58,
   showAge: true,
   showEmotion: true,
   showGender: false,

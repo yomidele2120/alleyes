@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
+import { FeatureSwitcher } from "@/components/feature-switcher";
 
 type Props = {
   title: string;
@@ -56,9 +57,12 @@ export function ImmersiveShell({
             </Link>
           )}
           <div className="min-w-0">
-            <h1 className="truncate font-display text-base tracking-[0.25em]">
-              {title}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="truncate font-display text-base tracking-[0.25em]">
+                {title}
+              </h1>
+              <FeatureSwitcher />
+            </div>
             {subtitle && (
               <p className="truncate text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
                 {subtitle}

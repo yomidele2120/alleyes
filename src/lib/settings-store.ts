@@ -17,6 +17,17 @@ export type Settings = {
   manualBrightnessBoost: number; // 0..100 (additive floor)
   manualContrastBoost: number; // 1.0..2.5 (floor)
   greenTint: boolean;
+  // LENS v3 — backend & recognition
+  backendUrl: string;
+  mediamtxUrl: string;
+  wsUrl: string;
+  similarityThreshold: number; // 0.35–0.60 (cosine — higher = stricter)
+  fpsRate: number; // 1..5
+  showAgeEstimate: boolean;
+  showGenderEstimate: boolean;
+  soundOnTarget: boolean;
+  soundOnWatchlist: boolean;
+  desktopNotifications: boolean;
 };
 
 const KEY = "lens.settings.v1";
@@ -36,6 +47,16 @@ export const defaultSettings: Settings = {
   manualBrightnessBoost: 0,
   manualContrastBoost: 1.0,
   greenTint: false,
+  backendUrl: "http://localhost:8000",
+  mediamtxUrl: "http://localhost:8888",
+  wsUrl: "ws://localhost:3001",
+  similarityThreshold: 0.45,
+  fpsRate: 2,
+  showAgeEstimate: true,
+  showGenderEstimate: true,
+  soundOnTarget: true,
+  soundOnWatchlist: true,
+  desktopNotifications: false,
 };
 
 export function loadSettings(): Settings {

@@ -14,7 +14,146 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cameras: {
+        Row: {
+          added_at: string
+          id: string
+          is_active: boolean
+          location: string | null
+          name: string
+          rtmp_key: string
+          stream_url: string | null
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          name: string
+          rtmp_key: string
+          stream_url?: string | null
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          name?: string
+          rtmp_key?: string
+          stream_url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      detection_logs: {
+        Row: {
+          age_estimate: number | null
+          camera_id: string | null
+          camera_name: string | null
+          confidence: number | null
+          detected_at: string
+          full_name: string | null
+          gender: string | null
+          id: string
+          identity_id: string | null
+          nin: string | null
+          snapshot_url: string | null
+          user_id: string
+        }
+        Insert: {
+          age_estimate?: number | null
+          camera_id?: string | null
+          camera_name?: string | null
+          confidence?: number | null
+          detected_at?: string
+          full_name?: string | null
+          gender?: string | null
+          id?: string
+          identity_id?: string | null
+          nin?: string | null
+          snapshot_url?: string | null
+          user_id: string
+        }
+        Update: {
+          age_estimate?: number | null
+          camera_id?: string | null
+          camera_name?: string | null
+          confidence?: number | null
+          detected_at?: string
+          full_name?: string | null
+          gender?: string | null
+          id?: string
+          identity_id?: string | null
+          nin?: string | null
+          snapshot_url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "detection_logs_identity_id_fkey"
+            columns: ["identity_id"]
+            isOneToOne: false
+            referencedRelation: "identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      identities: {
+        Row: {
+          date_of_birth: string | null
+          embedding: Json | null
+          embeddings_multi: Json | null
+          enrolled_at: string
+          full_name: string
+          gender: string | null
+          group_tag: string
+          id: string
+          id_type: string
+          is_active: boolean
+          nationality: string | null
+          nin: string | null
+          notes: string | null
+          photo_url: string | null
+          user_id: string
+        }
+        Insert: {
+          date_of_birth?: string | null
+          embedding?: Json | null
+          embeddings_multi?: Json | null
+          enrolled_at?: string
+          full_name: string
+          gender?: string | null
+          group_tag?: string
+          id?: string
+          id_type?: string
+          is_active?: boolean
+          nationality?: string | null
+          nin?: string | null
+          notes?: string | null
+          photo_url?: string | null
+          user_id: string
+        }
+        Update: {
+          date_of_birth?: string | null
+          embedding?: Json | null
+          embeddings_multi?: Json | null
+          enrolled_at?: string
+          full_name?: string
+          gender?: string | null
+          group_tag?: string
+          id?: string
+          id_type?: string
+          is_active?: boolean
+          nationality?: string | null
+          nin?: string | null
+          notes?: string | null
+          photo_url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

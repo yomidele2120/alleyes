@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { Download, Upload, Trash2, Lock } from "lucide-react";
+import { Download, Upload, Trash2, Lock, Plug, CheckCircle2, XCircle } from "lucide-react";
 import { LensNav } from "@/components/lens-nav";
 import {
   hashPin,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/settings-store";
 import { loadIdentities, saveIdentities, type Identity } from "@/lib/face-store";
 import { clearLog } from "@/lib/detection-log";
+import { pingBackend } from "@/lib/lens-backend";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -187,6 +188,88 @@ function SettingsPage() {
             </button>
           </div>
         </Section>
+
+        <Section title="Backend Servers">
+          <label className="block">
+            <span className="mb-1 block text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+              Python backend URL
+            </span>
+            <div className="flex gap-2">
+              <input
+                value={s.backendUrl}
+                onChange={(e) => update({ backendUrl: e.target.value })}
+                placeholder="http://localhost:8000"
+                className="flex-1 rounded-lg border border-border bg-input/40 px-3 py-2 font-mono text-xs focus:border-primary focus:outline-none"
+              />
+              <TestButton onTest={async () => !!(await pingBackend())} />
+            </div>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+              MediaMTX (HLS) URL
+            </span>
+            <input
+              value={s.mediamtxUrl}
+              onChange={(e) => update({ mediamtxUrl: e.target.value })}
+              placeholder="http://localhost:8888"
+              className="w-full rounded-lg border border-border bg-input/40 px-3 py-2 font-mono text-xs focus:border-primary focus:outline-none"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+              WebSocket URL
+            </span>
+            <input
+              value={s.wsUrl}
+              onChange={(e) => update({ wsUrl: e.target.value })}
+              placeholder="ws://localhost:3001"
+              className="w-full rounded-lg border border-border bg-input/40 px-3 py-2 font-mono text-xs focus:border-primary focus:outline-none"
+            />
+          </label>
+          <div className="rounded-lg border border-border bg-card/40 px-3 py-2.5 text-xs text-muted-foreground">
+            When the Python backend is unreachable, LENS falls back to the in-browser face-api.js
+            engine so Identify and Enroll keep working.
+          </div>
+        </Section>
+
+        <Section title="Recognition Precision">
+          <label className="block">
+            <div className="mb-2 flex justify-between text-xs uppercase tracking-[0.25em] text-muted-foreground">
+              <span>Similarity threshold</span>
+              <span>{s.similarityThreshold.toFixed(2)}</span>
+            </div>
+            <input
+              type="range"
+              min={0.35}
+              max={0.6}
+              step={0.01}
+              value={s.similarityThreshold}
+              onChange={(e) => update({ similarityThreshold: Number(e.target.value) })}
+              className="w-full accent-[var(--primary)]"
+            />
+          </label>
+          <label className="block">
+            <div className="mb-2 flex justify-between text-xs uppercase tracking-[0.25em] text-muted-foreground">
+              <span>Frame analysis rate</span>
+              <span>{s.fpsRate} fps</span>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={5}
+              step={1}
+              value={s.fpsRate}
+              onChange={(e) => update({ fpsRate: Number(e.target.value) })}
+              className="w-full accent-[var(--primary)]"
+            />
+          </label>
+          <Toggle label="Show age estimate" k="showAgeEstimate" s={s} update={update} />
+          <Toggle label="Show gender estimate" k="showGenderEstimate" s={s} update={update} />
+          <Toggle label="Sound on TARGET found" k="soundOnTarget" s={s} update={update} />
+          <Toggle label="Sound on WATCHLIST" k="soundOnWatchlist" s={s} update={update} />
+          <Toggle label="Desktop notifications" k="desktopNotifications" s={s} update={update} />
+        </Section>
+
 
         <Section title="App PIN Lock">
           <p className="mb-3 text-xs text-muted-foreground">

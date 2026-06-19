@@ -13,8 +13,11 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as NetworkRouteImport } from './routes/network'
 import { Route as LogRouteImport } from './routes/log'
+import { Route as LiveRouteImport } from './routes/live'
+import { Route as IdentitiesRouteImport } from './routes/identities'
 import { Route as IdentifyRouteImport } from './routes/identify'
 import { Route as EnrollRouteImport } from './routes/enroll'
+import { Route as CamerasRouteImport } from './routes/cameras'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIdRouteImport } from './routes/profile.$id'
@@ -39,6 +42,16 @@ const LogRoute = LogRouteImport.update({
   path: '/log',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LiveRoute = LiveRouteImport.update({
+  id: '/live',
+  path: '/live',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IdentitiesRoute = IdentitiesRouteImport.update({
+  id: '/identities',
+  path: '/identities',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IdentifyRoute = IdentifyRouteImport.update({
   id: '/identify',
   path: '/identify',
@@ -47,6 +60,11 @@ const IdentifyRoute = IdentifyRouteImport.update({
 const EnrollRoute = EnrollRouteImport.update({
   id: '/enroll',
   path: '/enroll',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CamerasRoute = CamerasRouteImport.update({
+  id: '/cameras',
+  path: '/cameras',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -68,8 +86,11 @@ const ProfileIdRoute = ProfileIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/cameras': typeof CamerasRoute
   '/enroll': typeof EnrollRoute
   '/identify': typeof IdentifyRoute
+  '/identities': typeof IdentitiesRoute
+  '/live': typeof LiveRoute
   '/log': typeof LogRoute
   '/network': typeof NetworkRoute
   '/search': typeof SearchRoute
@@ -79,8 +100,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/cameras': typeof CamerasRoute
   '/enroll': typeof EnrollRoute
   '/identify': typeof IdentifyRoute
+  '/identities': typeof IdentitiesRoute
+  '/live': typeof LiveRoute
   '/log': typeof LogRoute
   '/network': typeof NetworkRoute
   '/search': typeof SearchRoute
@@ -91,8 +115,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/cameras': typeof CamerasRoute
   '/enroll': typeof EnrollRoute
   '/identify': typeof IdentifyRoute
+  '/identities': typeof IdentitiesRoute
+  '/live': typeof LiveRoute
   '/log': typeof LogRoute
   '/network': typeof NetworkRoute
   '/search': typeof SearchRoute
@@ -104,8 +131,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/cameras'
     | '/enroll'
     | '/identify'
+    | '/identities'
+    | '/live'
     | '/log'
     | '/network'
     | '/search'
@@ -115,8 +145,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/cameras'
     | '/enroll'
     | '/identify'
+    | '/identities'
+    | '/live'
     | '/log'
     | '/network'
     | '/search'
@@ -126,8 +159,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/auth'
+    | '/cameras'
     | '/enroll'
     | '/identify'
+    | '/identities'
+    | '/live'
     | '/log'
     | '/network'
     | '/search'
@@ -138,8 +174,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  CamerasRoute: typeof CamerasRoute
   EnrollRoute: typeof EnrollRoute
   IdentifyRoute: typeof IdentifyRoute
+  IdentitiesRoute: typeof IdentitiesRoute
+  LiveRoute: typeof LiveRoute
   LogRoute: typeof LogRoute
   NetworkRoute: typeof NetworkRoute
   SearchRoute: typeof SearchRoute
@@ -177,6 +216,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/live': {
+      id: '/live'
+      path: '/live'
+      fullPath: '/live'
+      preLoaderRoute: typeof LiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/identities': {
+      id: '/identities'
+      path: '/identities'
+      fullPath: '/identities'
+      preLoaderRoute: typeof IdentitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/identify': {
       id: '/identify'
       path: '/identify'
@@ -189,6 +242,13 @@ declare module '@tanstack/react-router' {
       path: '/enroll'
       fullPath: '/enroll'
       preLoaderRoute: typeof EnrollRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cameras': {
+      id: '/cameras'
+      path: '/cameras'
+      fullPath: '/cameras'
+      preLoaderRoute: typeof CamerasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -218,8 +278,11 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  CamerasRoute: CamerasRoute,
   EnrollRoute: EnrollRoute,
   IdentifyRoute: IdentifyRoute,
+  IdentitiesRoute: IdentitiesRoute,
+  LiveRoute: LiveRoute,
   LogRoute: LogRoute,
   NetworkRoute: NetworkRoute,
   SearchRoute: SearchRoute,

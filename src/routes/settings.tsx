@@ -306,6 +306,31 @@ function SettingsPage() {
   );
 }
 
+function TestButton({ onTest }: { onTest: () => Promise<boolean> }) {
+  const [state, setState] = useState<"idle" | "ok" | "fail" | "busy">("idle");
+  return (
+    <button
+      onClick={async () => {
+        setState("busy");
+        const ok = await onTest();
+        setState(ok ? "ok" : "fail");
+        if (ok) toast.success("Backend reachable");
+        else toast.error("Backend not reachable");
+      }}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card/60 px-3 py-2 text-xs"
+    >
+      {state === "ok" ? (
+        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+      ) : state === "fail" ? (
+        <XCircle className="h-3.5 w-3.5 text-red-400" />
+      ) : (
+        <Plug className="h-3.5 w-3.5" />
+      )}
+      Test
+    </button>
+  );
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="animate-fade-in mb-6 glass rounded-2xl p-5">

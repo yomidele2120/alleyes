@@ -124,3 +124,6 @@
   box-shadow: 0 0 24px -4px color-mix(in oklab, var(--primary) 60%, transparent);
   border-color: color-mix(in oklab, var(--primary) 60%, transparent);
 }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }

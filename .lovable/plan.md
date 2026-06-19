@@ -1,80 +1,95 @@
-# LENS v2 — Full Upgrade Plan
+# LENS v3 — Build Plan
 
-This is a very large scope (10 feature areas, ~40+ sub-features). I'll build it in **5 sequential phases** so each phase ships in a working state. After you approve, I'll execute Phase 1 immediately; subsequent phases run in follow-up turns (each phase ≈ one large batch of file writes).
+Frontend-only build on Lovable. Cloud (Supabase) for storage. External Python/MediaMTX optional — when offline, the existing in-browser face-api.js engine takes over so Identify/Enroll/Search keep working.
 
-I'm flagging upfront where browser limits force a compromise — I'll still build the closest viable alternative as you requested.
+## 1. Lovable Cloud schema
 
----
+Three tables in `public`, RLS on, explicit GRANTs.
 
-## Phase 1 — Foundations (data layer, settings, nav, design tokens)
+- `identities` — id, full_name, nin (unique), id_type, date_of_birth, gender, nationality, photo_url, embedding jsonb, embeddings_multi jsonb, group_tag (staff/vip/watchlist/public), notes, enrolled_at, is_active, owner_id
+- `detection_logs` — id, identity_id (nullable for unknowns), full_name, nin, confidence, camera_id, camera_name, snapshot_url, detected_at, age_estimate, gender, owner_id
+- `cameras` — id, name, location, rtmp_key (unique per owner), stream_url, is_active, added_at, owner_id
 
-- Extend `face-store.ts`:
-  - `Identity` gains: `descriptors: number[][]` (5 angles, averaged at match time), `thumbnail` (dataURL), `group`, `notes`, `detectionCount`, `lastSeen`, `firstEnrolled`.
-  - New `detection-log.ts` store (localStorage, capped at 500 entries) with thumbnail, name, feed, time, confidence.
-  - New `settings-store.ts` with all Feature 9 toggles + Zustand-style subscribe.
-- New `settings.tsx` route implementing every Feature 9 control (threshold slider, toggles, JSON import/export, clear-all, PIN lock).
-- New bottom nav (mobile) / sidebar (desktop) — replaces current `LensNav` with: Home, Enroll, Identify, Search, Network, Log, Settings.
-- New `Home` dashboard route: enrolled count, feeds active, detections today, last-5 strip, quick-search dropdown.
-- Add color tokens `--success` (#22C55E) and `--danger` (#EF4444) to `styles.css` if missing.
+Auth: email/password + Google (via Lovable broker). Routes that mutate data live under `_authenticated/`. Public dashboard read uses `requireSupabaseAuth` server fns.
 
-## Phase 2 — Recognition engine v2 (always-on labels + AI extras)
+Storage bucket `lens-snapshots` for enrollment photos + detection snapshots.
 
-- Add `faceExpressionNet`, `ageGenderNet` to loader (toggleable via settings; lazy-loaded to keep cold start fast).
-- Rewrite `use-face-recognition.ts`:
-  - Always detects ALL faces, returns `age`, `gender`, `expression` when enabled.
-  - Matches against averaged descriptor set per identity.
-  - Honors confidence threshold from settings.
-  - Optionally hides UNIDENTIFIED per settings.
-  - Auto-logs detections (throttled per identity, e.g. once per 10s) with snapshot.
-- Upgrade `BoundingBox`:
-  - 2px rounded, smooth tracking (CSS transitions on transform).
-  - Blue pill for known + confidence %, grey pill for UNIDENTIFIED, gold pill for active search target, per-target colored pill in multi-target mode.
-  - Age/emotion/gender chips below name pill (driven by settings).
-  - Tappable → opens Face Intelligence panel (Feature 6).
-- Add `face-intel-panel.tsx` (slide-up sheet) with enrollment photo, stats, age, emotion, current feed, "View Full Profile" link to `/profile/$id`.
+## 2. Backend client (`src/lib/lens-backend.ts`)
 
-## Phase 3 — Multi-angle enrollment + profiles
+Thin wrapper around `VITE_BACKEND_URL` + `VITE_WS_URL` (configurable in Settings, persisted to localStorage; defaults `http://localhost:8000` / `ws://localhost:3001`).
 
-- Rewrite `enroll.tsx` as a 5-step guided flow: "Look straight" → "Slightly left" → "Slightly right" → "Tilt up" → "Tilt down". Progress bar, text prompt (speechSynthesis for voice prompt, toggleable). Captures one descriptor + thumbnail per step, then "Identity Locked" animation.
-- Optional 68-pt landmark mesh overlay during enrollment (canvas drawing over video).
-- New `/profile/$id` route: editable name, all 5 thumbnails, count, last-10 sightings (from log), group selector (Family / Team / Watch List / custom), notes, delete, re-enroll.
+- `health()` → polls `/api/health`; sets `backendOnline` global store
+- `enroll(payload)` / `enrollBulk(csv)` / `identify(blob)` / `setTargets(ids[])`
+- WebSocket client with reconnect/backoff; emits typed events: `detection`, `target_found`, `camera_status`
+- On any fetch failure → mark offline, surface toast, frontend switches to face-api.js path
 
-## Phase 4 — Search mode + Detection log
+## 3. Engine router (`src/lib/recognition-engine.ts`)
 
-- New `search.tsx` route (renames/extends current `find.tsx`):
-  - Grid of identity cards with checkboxes (single or multi-select).
-  - "Begin Search" → camera view.
-  - Single target: gold pulsing box, "SCANNING FOR / TARGET LOCATED" banner.
-  - Multi target: per-target color palette (gold, blue, green, red, purple, cyan), top strip with status dots, "X of Y TARGETS LOCATED" banner, "ALL TARGETS LOCATED" celebratory state.
-- New `log.tsx` route: scrollable timeline (newest first), thumbnail + name + camera + time + confidence cards, filters (name / camera / date / min confidence), CSV export, clear-all confirmation.
+Single API for the UI:
+- `recognize(frame) → Detection[]`
+- If backend online → POST `/api/identify` with JPEG blob
+- Else → existing `use-face-recognition` (face-api.js) pipeline
+- Identities loaded from Supabase either way; embeddings field used by face-api fallback when present
 
-## Phase 5 — Network / multi-feed (CCTV)
+## 4. Screens (TanStack routes)
 
-- New `network.tsx` route: command-center grid (1 / 2 / 2×2 / 2×3 layouts up to 6 feeds).
-- Add-camera modal: name, stream URL, optional description, test-connection button.
-- Per-tile: name, live face count badge, green/red status dot.
-- **Browser-limit honesty:** Pure-browser JS cannot decode RTSP and most IP cameras don't expose CORS-enabled MJPEG, so a raw `rtsp://` URL won't play in `<video>`. I'll support what actually works in a browser and clearly label the rest:
-  - `Local Camera` (this device, front/back) ✅
-  - HTTP MJPEG streams via `<img>` tag (works only if the camera sends CORS headers) ✅
-  - HLS (`.m3u8`) and DASH via `hls.js` ✅
-  - WebRTC peer-to-peer "share another device's camera" via a lightweight room (offer/answer copy-paste or via Lovable Cloud signaling if you want a backend) ✅
-  - RTSP: shown in the form with a tooltip: "RTSP requires a gateway (e.g. MediaMTX → HLS). Paste the HLS URL instead." I'll document the workaround in-app.
-- Face recognition runs on every active tile in parallel (throttled per-tile to keep FPS sane on mobile — probably 2–4 fps per feed depending on count).
-- Search integration: when a target is active, any tile that finds them gets a gold border glow + "TARGET FOUND — [Feed Name]" banner + optional alert chime (WebAudio, no asset needed).
+```
+/                       Dashboard home (stats, recent, quick search, system status)
+/live                   Camera grid (HLS via hls.js + overlay canvas)
+/search                 Targets + status board + mini grid
+/identities             Table + add/bulk modals
+/identities/$id         Profile + history + add-angles
+/log                    Detection log (filters, CSV export)
+/cameras                Camera list + add modal with copyable RTMP/HLS URLs
+/settings               Recognition/Alert/Data/Server settings
+/auth                   Sign in (email + Google)
+```
 
----
+All under `_authenticated/` except `/auth`. Existing `enroll`/`identify`/`search` immersive flows kept and linked from new screens.
 
-## Technical notes (for the curious)
+## 5. Components
 
-- All storage stays in `localStorage` (no backend). Thumbnails are 96×96 JPEGs at ~0.7 quality to keep under the 5 MB quota; log auto-trims to 500 entries.
-- AI models load lazily: detector + landmarks + recognition always; age/gender/expression only when their toggles are on (saves ~1 MB initial load).
-- Per-feed recognition uses `requestAnimationFrame` + a frame-skip counter scaled by active feed count, so 6 feeds stay responsive on a modern phone.
-- PIN lock is local-only (sessionStorage flag + hashed PIN in localStorage) — not real security, just a screen guard.
+- `lens-sidebar.tsx` / `lens-bottom-nav.tsx` — replaces current `lens-nav`
+- `camera-tile.tsx` — HLS player + canvas overlay + status pills
+- `detection-overlay.tsx` — box colors by group (blue/grey/red/gold), pulse for watchlist/target
+- `identity-card.tsx`, `identity-table.tsx`, `bulk-import-modal.tsx`, `add-identity-modal.tsx`
+- `target-board.tsx`, `target-picker.tsx`
+- `system-status.tsx` (backend/model/ws/streams indicators)
+- `toast-stream.tsx` — global watchlist/target sounds + stacked toasts
 
----
+## 6. Design tokens
 
-## What I need from you
+Apply spec palette in `src/styles.css` as semantic tokens (`--bg`, `--surface`, `--accent`, `--gold`, `--success`, `--danger`, `--warning`, `--text`, `--muted`). Cormorant for the wordmark, Inter for UI (via `@fontsource`). 14px card radius, 8px button radius, frosted glass overlay class, 200ms transitions. No hardcoded hex in components.
 
-1. **Approve the plan** and I'll start Phase 1 immediately.
-2. **Network feed protocols:** confirm you're OK with HLS / MJPEG / WebRTC instead of raw RTSP (browsers genuinely can't do RTSP). If you have a specific camera, tell me the model and I'll tune the form.
-3. **Backend?** Currently 100% on-device. For cross-device WebRTC pairing without copy-pasting SDP, I'd want to enable Lovable Cloud for a tiny signaling table. Say the word and I'll enable it.
+## 7. Settings store extensions
+
+Extend `settings-store.ts` with: similarity threshold, label min-confidence, fps, show unknowns/age/gender, sound on target, sound on watchlist, desktop notifications, backend URL, mediamtx URL, ws URL. Test-connection buttons.
+
+## 8. CSV bulk import
+
+CSV template download, paper-parse client side, batch POST to `/api/enroll/bulk` if backend online; else fallback path enrolls one-by-one in-browser using face-api.js and Supabase insert.
+
+## 9. Out of scope (your infra)
+
+I'll **not** generate Python/MediaMTX/Docker files this round (you chose frontend-only). When you're ready to stand up the Python side, ask me to "scaffold the LENS Python backend" and I'll add `backend/` + `mediamtx.yml` + `docker-compose.yml` + README as repo files.
+
+## Technical notes
+
+- Cloud Supabase clients per `tanstack-supabase-integration`: browser client in components, `requireSupabaseAuth` in server fns, `supabaseAdmin` only inside handler dynamic imports (none needed for v1).
+- HLS playback: `bun add hls.js`. Safari uses native HLS.
+- Audio alerts: small base64 wav, gated by settings.
+- WebSocket lives in a React context provider mounted in `__root.tsx` so all screens share one connection.
+- Engine auto-fallback decision is reactive — health poll every 15s + on every failed request.
+
+## Build order
+
+1. Enable Cloud + schema + auth + storage bucket
+2. Tokens, fonts, sidebar/bottom-nav shell
+3. Backend client + WS provider + health/engine router
+4. Identities CRUD + Add/Bulk modals + Profile page
+5. Cameras CRUD + HLS tile + Live grid
+6. Search & Track + target board
+7. Detection log + export
+8. Dashboard stats + recent strip
+9. Settings (recognition + server URLs + test connection)
+10. Wire watchlist/target sounds + toasts

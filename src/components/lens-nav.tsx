@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
+import { backendStatusLabel, backendStatusTone } from "@/lib/lens-backend";
+import { useBackendHealth } from "@/hooks/use-backend-health";
 
 const ITEMS = [
   { to: "/", label: "Dashboard", icon: Home },
@@ -30,6 +32,18 @@ const ITEMS = [
 export function LensNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useSession();
+  const { status } = useBackendHealth();
+  const label = backendStatusLabel(status);
+  const tone = backendStatusTone(status);
+
+  const toneClasses =
+    tone === "emerald"
+      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+      : tone === "amber"
+        ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
+        : tone === "red"
+          ? "border-red-500/30 bg-red-500/10 text-red-300"
+          : "border-border bg-background/40 text-muted-foreground";
 
   return (
     <>
@@ -57,7 +71,33 @@ export function LensNav() {
               );
             })}
           </nav>
-          <div className="hidden md:flex items-center">
+          <div className="flex items-center gap-2 md:gap-3">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[9px] uppercase tracking-[0.16em] md:px-2.5 md:py-1 md:text-[10px] md:tracking-[0.2em] ${toneClasses}`}
+            >
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{
+                  background:
+                    tone === "emerald"
+                      ? "#22C55E"
+                      : tone === "amber"
+                        ? "#F59E0B"
+                        : tone === "red"
+                          ? "#EF4444"
+                          : "var(--muted-foreground)",
+                  boxShadow:
+                    tone === "emerald"
+                      ? "0 0 8px #22C55E"
+                      : tone === "amber"
+                        ? "0 0 8px #F59E0B"
+                        : tone === "red"
+                          ? "0 0 8px #EF4444"
+                          : "none",
+                }}
+              />
+              {label}
+            </span>
             {user ? (
               <button
                 onClick={() => supabase.auth.signOut()}
@@ -76,6 +116,11 @@ export function LensNav() {
             )}
           </div>
         </div>
+        {status === "local" && (
+          <div className="pointer-events-auto mx-auto mt-2 flex max-w-7xl items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-amber-300">
+            Running in Local Mode
+          </div>
+        )}
       </header>
 
       {/* Mobile bottom nav (compact, scrolls horizontally) */}

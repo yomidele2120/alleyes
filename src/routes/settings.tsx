@@ -8,9 +8,9 @@ import {
   useSettings,
   type Settings,
 } from "@/lib/settings-store";
-import { loadIdentities, saveIdentities, type Identity } from "@/lib/face-store";
-import { clearLog } from "@/lib/detection-log";
-import { pingBackend } from "@/lib/lens-backend";
+import { loadIdentities, saveIdentities, type Identity, syncIdentitiesToBackend } from "@/lib/face-store";
+import { clearLog, syncLogFromBackend } from "@/lib/detection-log";
+import { backendDeleteIdentity, pingBackend } from "@/lib/lens-backend";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -46,6 +46,7 @@ function SettingsPage() {
       const parsed = JSON.parse(await file.text()) as Identity[];
       if (!Array.isArray(parsed)) throw new Error("Invalid file");
       saveIdentities(parsed);
+      void syncIdentitiesToBackend(parsed);
       toast.success(`Imported ${parsed.length} identities`);
     } catch {
       toast.error("Failed to import — invalid JSON");
@@ -55,8 +56,11 @@ function SettingsPage() {
   const onClearAll = () => {
     if (!confirm("Delete ALL identities and detection log? This cannot be undone.")) return;
     if (!confirm("Are you absolutely sure?")) return;
+    const current = loadIdentities();
     saveIdentities([]);
     clearLog();
+    void Promise.all(current.map((identity) => backendDeleteIdentity(identity.id).catch(() => {})));
+    void syncLogFromBackend();
     toast.success("All local data cleared");
   };
 

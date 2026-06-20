@@ -6,7 +6,7 @@ import { SignInGate } from "@/components/sign-in-gate";
 import { useSession } from "@/hooks/use-session";
 import { useBackendHealth } from "@/hooks/use-backend-health";
 import { listCameras } from "@/lib/cloud/cameras";
-import { hlsUrlFor } from "@/lib/lens-backend";
+import { backendStatusLabel, backendStatusTone, hlsUrlFor } from "@/lib/lens-backend";
 import { Activity, Cpu, Radio, Users } from "lucide-react";
 
 export const Route = createFileRoute("/live")({
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/live")({
 
 function LivePage() {
   const { user, loading } = useSession();
-  const { health, online } = useBackendHealth();
+  const { health, status } = useBackendHealth();
   const camerasQuery = useQuery({
     queryKey: ["cameras"],
     queryFn: listCameras,
@@ -46,10 +46,10 @@ function LivePage() {
             <h1 className="font-display text-3xl tracking-[0.2em]">Live View</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.2em]">
-            <StatusPill icon={Cpu} label={online ? "Engine: Backend" : "Engine: Client"} ok={online} />
+              <StatusPill icon={Cpu} label={backendStatusLabel(status)} tone={backendStatusTone(status)} />
             <StatusPill icon={Radio} label={`Streams ${cameras.length}`} ok={cameras.length > 0} />
             {health && (
-              <StatusPill icon={Users} label={`${health.identity_count} stored`} ok />
+                <StatusPill icon={Users} label={`${health.identity_count ?? 0} stored`} ok />
             )}
           </div>
         </header>
@@ -77,16 +77,26 @@ function StatusPill({
   icon: Icon,
   label,
   ok,
+  tone,
 }: {
   icon: typeof Activity;
   label: string;
-  ok: boolean;
+  ok?: boolean;
+  tone?: "emerald" | "amber" | "red" | "slate";
 }) {
+  const isOk = ok ?? tone === "emerald";
+  const colorClasses =
+    tone === "amber"
+      ? "border-amber-500/40 text-amber-300"
+      : tone === "red"
+        ? "border-red-500/40 text-red-300"
+        : isOk
+          ? "border-emerald-500/40 text-emerald-400"
+          : "border-border text-muted-foreground";
+
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 ${
-        ok ? "border-emerald-500/40 text-emerald-400" : "border-border text-muted-foreground"
-      }`}
+      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 ${colorClasses}`}
     >
       <Icon className="h-3 w-3" />
       {label}

@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, Filter, Trash2 } from "lucide-react";
 import { LensNav } from "@/components/lens-nav";
 import { clearLog, exportCsv, loadLog, type LogEntry } from "@/lib/detection-log";
+import { useBackendHealth } from "@/hooks/use-backend-health";
+import { syncLogFromBackend } from "@/lib/detection-log";
 
 export const Route = createFileRoute("/log")({
   head: () => ({
@@ -24,6 +26,7 @@ function LogPage() {
   const [feed, setFeed] = useState("");
   const [minConf, setMinConf] = useState(0);
   const [date, setDate] = useState("");
+  const { status } = useBackendHealth();
 
   useEffect(() => {
     const sync = () => setLog(loadLog());
@@ -31,6 +34,12 @@ function LogPage() {
     window.addEventListener("lens:log", sync);
     return () => window.removeEventListener("lens:log", sync);
   }, []);
+
+  useEffect(() => {
+    if (status === "insightface") {
+      void syncLogFromBackend();
+    }
+  }, [status]);
 
   const names = useMemo(() => Array.from(new Set(log.map((l) => l.name))).sort(), [log]);
   const feeds = useMemo(() => Array.from(new Set(log.map((l) => l.feed))).sort(), [log]);

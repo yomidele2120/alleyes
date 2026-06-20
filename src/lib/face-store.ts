@@ -1,4 +1,14 @@
 // LENS identity store. localStorage only — nothing leaves the device.
+import {
+  backendConnection,
+  backendDeleteIdentity,
+  backendEnrollAngles,
+  backendEnrollIdentity,
+  backendListIdentities,
+  backendUpdateIdentity,
+  type BackendIdentity,
+} from "@/lib/lens-backend";
+
 export type Identity = {
   id: string;
   name: string;
@@ -16,6 +26,85 @@ export type Identity = {
 
 const KEY = "lens.identities.v2";
 const LEGACY_KEY = "lens.identities.v1";
+
+function isInsightfaceActive() {
+  return backendConnection.getSnapshot().status === "insightface";
+}
+
+async function toBlob(dataUrl: string): Promise<Blob | null> {
+  try {
+    const response = await fetch(dataUrl);
+    return await response.blob();
+  } catch {
+    return null;
+  }
+}
+
+function mapBackendIdentity(item: BackendIdentity): Identity {
+  const descriptors =
+    item.embeddings_multi?.length
+      ? item.embeddings_multi
+      : item.embedding
+        ? [item.embedding]
+        : [];
+
+  return {
+    id: item.id,
+    name: item.full_name,
+    descriptors,
+    thumbnails: item.photo_url ? [item.photo_url] : [],
+    group: item.group_tag || "",
+    notes: item.notes || "",
+    detectionCount: 0,
+    lastSeen: null,
+    firstEnrolled: item.enrolled_at ? new Date(item.enrolled_at).getTime() : Date.now(),
+    createdAt: item.enrolled_at ? new Date(item.enrolled_at).getTime() : Date.now(),
+  };
+}
+
+export async function syncIdentitiesFromBackend() {
+  if (!isInsightfaceActive()) return loadIdentities();
+  try {
+    const remote = await backendListIdentities({ limit: 500 });
+    const mapped = remote.map(mapBackendIdentity);
+    localStorage.setItem(KEY, JSON.stringify(mapped));
+    window.dispatchEvent(new Event("lens:identities"));
+    return mapped;
+  } catch {
+    return loadIdentities();
+  }
+}
+
+export async function syncIdentitiesToBackend(items: Identity[]) {
+  if (!isInsightfaceActive()) return;
+  for (const item of items) {
+    try {
+      const patch = {
+        full_name: item.name,
+        group_tag: item.group,
+        notes: item.notes,
+        embeddings_multi: item.descriptors,
+      };
+      await backendUpdateIdentity(item.id, patch).catch(async () => {
+        const imageBlob = item.thumbnails[0] ? await toBlob(item.thumbnails[0]) : null;
+        if (!imageBlob) return;
+        const remote = await backendEnrollIdentity({
+          fullName: item.name,
+          idType: "",
+          groupTag: item.group,
+          notes: item.notes,
+          image: imageBlob,
+        });
+        for (const thumb of item.thumbnails.slice(1)) {
+          const blob = await toBlob(thumb);
+          if (blob) await backendEnrollAngles(remote.id, blob).catch(() => {});
+        }
+      });
+    } catch {
+      // best-effort only
+    }
+  }
+}
 
 function migrate(): Identity[] {
   // Migrate v1 single-descriptor identities to v2.
@@ -92,16 +181,48 @@ export function addIdentity(
   };
   items.push(item);
   saveIdentities(items);
+  if (isInsightfaceActive()) {
+    void (async () => {
+      try {
+        const imageBlob = thumbnails[0] ? await toBlob(thumbnails[0]) : null;
+        if (!imageBlob) return;
+        const remote = await backendEnrollIdentity({
+          fullName: name,
+          idType: "",
+          groupTag: group,
+          notes: "",
+          image: imageBlob,
+        });
+        for (const thumb of thumbnails.slice(1)) {
+          const blob = await toBlob(thumb);
+          if (blob) await backendEnrollAngles(remote.id, blob).catch(() => {});
+        }
+      } catch {
+        // best-effort sync only
+      }
+    })();
+  }
   return item;
 }
 
 export function updateIdentity(id: string, patch: Partial<Identity>) {
   const items = loadIdentities().map((i) => (i.id === id ? { ...i, ...patch } : i));
   saveIdentities(items);
+  if (isInsightfaceActive()) {
+    void backendUpdateIdentity(id, {
+      full_name: patch.name,
+      group_tag: patch.group,
+      notes: patch.notes,
+      embeddings_multi: patch.descriptors,
+    }).catch(() => {});
+  }
 }
 
 export function removeIdentity(id: string) {
   saveIdentities(loadIdentities().filter((i) => i.id !== id));
+  if (isInsightfaceActive()) {
+    void backendDeleteIdentity(id).catch(() => {});
+  }
 }
 
 export function bumpDetection(id: string) {

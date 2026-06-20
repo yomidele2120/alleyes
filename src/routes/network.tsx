@@ -15,6 +15,9 @@ import {
   type Feed,
 } from "@/lib/feed-store";
 import { loadIdentities, type Identity } from "@/lib/face-store";
+  import { backendConnection } from "@/lib/lens-backend";
+  import { chime } from "@/lib/utils-misc";
+  import { loadSettings } from "@/lib/settings-store";
 
 export const Route = createFileRoute("/network")({
   head: () => ({
@@ -47,6 +50,47 @@ function NetworkPage() {
     window.addEventListener("lens:identities", sync);
     return () => window.removeEventListener("lens:identities", sync);
   }, []);
+
+    useEffect(() => {
+      backendConnection.ensureStarted();
+
+      const offTargetFound = backendConnection.on("target_found", (detail) => {
+        const payload = detail as {
+          identity_name?: string;
+          full_name?: string;
+          name?: string;
+          camera_name?: string;
+          feed_name?: string;
+        };
+        const subject = payload.identity_name || payload.full_name || payload.name || "Target";
+        const source = payload.camera_name || payload.feed_name || "camera";
+        setAlert(`Target Found — ${subject} on ${source}`);
+        if (loadSettings().soundAlerts) chime();
+        setTimeout(() => setAlert(null), 4000);
+      });
+
+      const offTargetsUpdated = backendConnection.on("targets_updated", (detail) => {
+        const payload = detail as { identity_ids?: string[] };
+        if (Array.isArray(payload.identity_ids)) {
+          setTargetIds(new Set(payload.identity_ids));
+        }
+      });
+
+      const offCameraStatus = backendConnection.on("camera_status", (detail) => {
+        const payload = detail as { camera_name?: string; name?: string; online?: boolean };
+        const cameraName = payload.camera_name || payload.name;
+        if (cameraName) {
+          setAlert(`${cameraName} ${payload.online === false ? "offline" : "online"}`);
+          setTimeout(() => setAlert(null), 2500);
+        }
+      });
+
+      return () => {
+        offTargetFound();
+        offTargetsUpdated();
+        offCameraStatus();
+      };
+    }, []);
 
   // Grid columns based on tile count.
   const gridCols = useMemo(() => {

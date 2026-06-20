@@ -6,13 +6,9 @@ import { Plus, Search, Trash2, User } from "lucide-react";
 import { LensNav } from "@/components/lens-nav";
 import { SignInGate } from "@/components/sign-in-gate";
 import { useSession } from "@/hooks/use-session";
-import {
-  createIdentity,
-  deleteIdentity,
-  listIdentities,
-  type CloudIdentity,
-} from "@/lib/cloud/identities";
-import { uploadBlob } from "@/lib/cloud/upload";
+import { createIdentity } from "@/lib/cloud/identities";
+import { deleteIdentity, listIdentities, type CloudIdentity } from "@/lib/cloud/identities";
+import { backendEnrollIdentity } from "@/lib/lens-backend";
 
 export const Route = createFileRoute("/identities")({
   head: () => ({
@@ -202,20 +198,29 @@ function AddIdentityModal({ onClose, onCreated }: { onClose: () => void; onCreat
     if (!form.full_name) return toast.error("Name required");
     setBusy(true);
     try {
-      let photo_url: string | null = null;
-      if (file) photo_url = await uploadBlob(file, "identities");
-      await createIdentity({
-        full_name: form.full_name,
-        nin: form.nin || null,
-        id_type: form.id_type,
-        date_of_birth: form.date_of_birth || null,
-        gender: form.gender || null,
-        nationality: form.nationality || null,
-        photo_url,
-        embedding: null,
-        group_tag: form.group_tag,
-        notes: form.notes || null,
-      });
+      if (file) {
+        await backendEnrollIdentity({
+          fullName: form.full_name,
+          nin: form.nin || undefined,
+          idType: form.id_type,
+          groupTag: form.group_tag,
+          notes: form.notes || undefined,
+          image: file,
+        });
+      } else {
+        await createIdentity({
+          full_name: form.full_name,
+          nin: form.nin || null,
+          id_type: form.id_type,
+          date_of_birth: form.date_of_birth || null,
+          gender: form.gender || null,
+          nationality: form.nationality || null,
+          photo_url: null,
+          embedding: null,
+          group_tag: form.group_tag,
+          notes: form.notes || null,
+        });
+      }
       toast.success("Identity enrolled");
       onCreated();
     } catch (e: unknown) {

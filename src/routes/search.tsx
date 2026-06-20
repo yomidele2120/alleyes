@@ -13,6 +13,7 @@ import { loadSettings } from "@/lib/settings-store";
 import { chime, targetColor } from "@/lib/utils-misc";
 import { NightActivePill, NightModeToggle } from "@/components/night-mode-toggle";
 import { ImmersiveShell, CameraStage } from "@/components/immersive-shell";
+import { backendClearTargets, backendSetTargets } from "@/lib/lens-backend";
 
 export const Route = createFileRoute("/search")({
   head: () => ({
@@ -46,6 +47,13 @@ function SearchPage() {
   const navigate = useNavigate();
 
   useEffect(() => setIdentities(loadIdentities()), []);
+
+  useEffect(() => {
+    if (!searching) return;
+    return () => {
+      void backendClearTargets().catch(() => {});
+    };
+  }, [searching]);
 
   useFaceRecognition(
     canvasRef,
@@ -89,6 +97,17 @@ function SearchPage() {
     const next = new Set(selected);
     next.has(id) ? next.delete(id) : next.add(id);
     setSelected(next);
+  };
+
+  const beginSearch = async () => {
+    if (selected.size === 0) return;
+    try {
+      await backendSetTargets(Array.from(selected));
+    } catch {
+      // backend target sync is best-effort; the local search flow still runs
+    }
+    setEverFound(new Set());
+    setSearching(true);
   };
 
   if (!searching) {
@@ -169,11 +188,7 @@ function SearchPage() {
               </ul>
 
               <button
-                onClick={() => {
-                  if (selected.size === 0) return;
-                  setEverFound(new Set());
-                  setSearching(true);
-                }}
+                onClick={beginSearch}
                 disabled={selected.size === 0}
                 className="glow-hover mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-medium uppercase tracking-[0.25em] text-primary-foreground disabled:opacity-40"
               >
@@ -205,6 +220,7 @@ function SearchPage() {
       }
       onBack={() => {
         setSearching(false);
+        void backendClearTargets().catch(() => {});
         navigate({ to: "/search" });
       }}
       right={

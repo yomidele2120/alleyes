@@ -11,6 +11,9 @@ import type { Feed } from "@/lib/feed-store";
 import { BoundingBox } from "@/components/bounding-box";
 import { CameraFrame } from "@/components/camera-frame";
 import type { Match } from "@/hooks/use-face-recognition";
+import { backendIdentify, type BackendDetection } from "@/lib/lens-backend";
+import { backendConnection, normalizeBackendDetections } from "@/lib/lens-backend";
+import { useBackendHealth } from "@/hooks/use-backend-health";
 
 const LOG_THROTTLE_MS = 10_000;
 
@@ -27,6 +30,7 @@ export function NetworkTile({
   onRemove: () => void;
   onTargetFound?: (identityId: string, feedName: string) => void;
 }) {
+  const { status: backendStatus } = useBackendHealth();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [status, setStatus] = useState<"connecting" | "live" | "error">("connecting");
@@ -108,6 +112,58 @@ export function NetworkTile({
     (async () => {
       const faceapi = await loadFaceApi();
       const detectorOpts = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 });
+      const offDetection = backendConnection.on("detection", (detail) => {
+        if (backendStatus !== "insightface") return;
+        const payload = detail as { feed_name?: string; camera_name?: string; detections?: unknown };
+        const feedName = payload.feed_name || payload.camera_name;
+        if (feedName && feedName !== feed.name) return;
+        const detections = normalizeBackendDetections(payload.detections ?? detail);
+        if (!detections.length) return;
+        setMatches(mapBackendDetections(detections));
+      });
+
+      const metrics = () => {
+        const source: HTMLVideoElement | HTMLImageElement | null =
+          feed.kind === "mjpeg" ? imgRef.current : videoRef.current;
+        if (!source) return null;
+        const sourceW = "videoWidth" in source ? source.videoWidth : source.naturalWidth;
+        const sourceH = "videoHeight" in source ? source.videoHeight : source.naturalHeight;
+        const displayW = source.clientWidth;
+        const displayH = source.clientHeight;
+        const cover = Math.max(displayW / Math.max(1, sourceW), displayH / Math.max(1, sourceH));
+        return {
+          sourceW,
+          sourceH,
+          displayW,
+          displayH,
+          scaleX: cover,
+          scaleY: cover,
+          offsetX: (displayW - sourceW * cover) / 2,
+          offsetY: (displayH - sourceH * cover) / 2,
+        };
+      };
+
+      const mapBackendDetections = (detections: BackendDetection[]): Match[] => {
+        const m = metrics();
+        if (!m) return [];
+        return detections.map((d) => {
+          const identity = d.identity_id ? identities.find((i) => i.id === d.identity_id) : undefined;
+          return {
+            box: {
+              x: d.box.x * m.scaleX + m.offsetX,
+              y: d.box.y * m.scaleY + m.offsetY,
+              width: d.box.w * m.scaleX,
+              height: d.box.h * m.scaleY,
+            },
+            identityId: d.identity_id ?? null,
+            label: identity ? identity.name : d.name || "UNIDENTIFIED",
+            confidence: Math.max(0, Math.min(1, d.confidence)),
+            distance: 1 - Math.max(0, Math.min(1, d.confidence)),
+            age: d.age_estimate,
+            gender: d.gender,
+          };
+        });
+      };
 
       const buildMatcher = () => {
         if (identities.length === 0) return null;
@@ -133,38 +189,48 @@ export function NetworkTile({
           return;
         }
         try {
-          const detections = await faceapi
-            .detectAllFaces(source, detectorOpts)
-            .withFaceLandmarks()
-            .withFaceDescriptors();
+          const m = metrics();
+          if (!m) {
+            timer = window.setTimeout(tick, 250);
+            return;
+          }
 
-          const matcher = buildMatcher();
-          const sourceW = "videoWidth" in source ? source.videoWidth : source.naturalWidth;
-          const sourceH = "videoHeight" in source ? source.videoHeight : source.naturalHeight;
-          const displayW = source.clientWidth;
-          const displayH = source.clientHeight;
-          const scaleX = displayW / Math.max(1, sourceW);
-          const scaleY = displayH / Math.max(1, sourceH);
+          let ms: Match[] = [];
+          if (backendStatus === "insightface") {
+            const blob = await captureSourceBlob(source);
+            const backendDetections = blob ? await backendIdentify(blob) : null;
+            if (backendDetections && backendDetections.length) {
+              ms = mapBackendDetections(backendDetections);
+            }
+          }
 
-          const ms: Match[] = detections.map((d) => {
-            const best = matcher ? matcher.findBestMatch(d.descriptor) : null;
-            const matched = best && best.label !== "unknown";
-            const id = matched ? best.label : null;
-            const identity = id ? identities.find((i) => i.id === id) : undefined;
-            const distance = best ? best.distance : 1;
-            return {
-              box: {
-                x: d.detection.box.x * scaleX,
-                y: d.detection.box.y * scaleY,
-                width: d.detection.box.width * scaleX,
-                height: d.detection.box.height * scaleY,
-              },
-              identityId: id,
-              label: identity ? identity.name : "UNIDENTIFIED",
-              confidence: Math.max(0, Math.min(1, 1 - distance)),
-              distance,
-            };
-          });
+          if (!ms.length) {
+            const detections = await faceapi
+              .detectAllFaces(source, detectorOpts)
+              .withFaceLandmarks()
+              .withFaceDescriptors();
+
+            const matcher = buildMatcher();
+            ms = detections.map((d) => {
+              const best = matcher ? matcher.findBestMatch(d.descriptor) : null;
+              const matched = best && best.label !== "unknown";
+              const id = matched ? best.label : null;
+              const identity = id ? identities.find((i) => i.id === id) : undefined;
+              const distance = best ? best.distance : 1;
+              return {
+                box: {
+                  x: d.detection.box.x * m.scaleX + m.offsetX,
+                  y: d.detection.box.y * m.scaleY + m.offsetY,
+                  width: d.detection.box.width * m.scaleX,
+                  height: d.detection.box.height * m.scaleY,
+                },
+                identityId: id,
+                label: identity ? identity.name : "UNIDENTIFIED",
+                confidence: Math.max(0, Math.min(1, 1 - distance)),
+                distance,
+              };
+            });
+          }
 
           // Auto-log + target detection
           const s = loadSettings();
@@ -207,7 +273,7 @@ export function NetworkTile({
           }
 
           setMatches(ms);
-          setDim({ w: displayW, h: displayH });
+          setDim({ w: m.displayW, h: m.displayH });
         } catch { /* ignore */ }
         // Throttle: heavier when many tiles
         timer = window.setTimeout(tick, 250);
@@ -218,8 +284,9 @@ export function NetworkTile({
     return () => {
       alive = false;
       if (timer) clearTimeout(timer);
+      offDetection();
     };
-  }, [status, feed, identities, targetIds, onTargetFound]);
+  }, [backendStatus, feed, identities, targetIds, onTargetFound]);
 
   const hasTargetFound = matches.some(
     (m) => m.identityId && targetIds.has(m.identityId),
@@ -304,6 +371,24 @@ export function NetworkTile({
       )}
     </CameraFrame>
   );
+}
+
+async function captureSourceBlob(src: HTMLVideoElement | HTMLImageElement, size = 640): Promise<Blob | null> {
+  try {
+    const canvas = document.createElement("canvas");
+    const sourceW = "videoWidth" in src ? src.videoWidth : src.naturalWidth;
+    const sourceH = "videoHeight" in src ? src.videoHeight : src.naturalHeight;
+    if (!sourceW || !sourceH) return null;
+    const ratio = Math.min(size / sourceW, size / sourceH);
+    canvas.width = Math.max(1, Math.round(sourceW * ratio));
+    canvas.height = Math.max(1, Math.round(sourceH * ratio));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(src, 0, 0, canvas.width, canvas.height);
+    return await new Promise<Blob | null>((resolve) => canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.9));
+  } catch {
+    return null;
+  }
 }
 
 function imgToDataUrl(img: HTMLImageElement) {

@@ -1,28 +1,22 @@
-import { useEffect, useState } from "react";
-import { pingBackend, type BackendHealth } from "@/lib/lens-backend";
+import { useSyncExternalStore } from "react";
+import { backendConnection, type BackendConnectionStatus, type BackendHealth } from "@/lib/lens-backend";
 
-export function useBackendHealth(intervalMs = 15000) {
-  const [health, setHealth] = useState<BackendHealth | null>(null);
-  const [checking, setChecking] = useState(true);
+export function useBackendHealth() {
+  backendConnection.ensureStarted();
+  const snapshot = useSyncExternalStore(
+    (listener) => backendConnection.subscribe(listener),
+    () => backendConnection.getSnapshot(),
+    () => backendConnection.getSnapshot(),
+  );
 
-  useEffect(() => {
-    let mounted = true;
-    let ac: AbortController | null = null;
-    const tick = async () => {
-      ac = new AbortController();
-      const h = await pingBackend(ac.signal);
-      if (!mounted) return;
-      setHealth(h);
-      setChecking(false);
-    };
-    tick();
-    const id = setInterval(tick, intervalMs);
-    return () => {
-      mounted = false;
-      ac?.abort();
-      clearInterval(id);
-    };
-  }, [intervalMs]);
-
-  return { health, online: !!health, checking };
+  return {
+    health: snapshot.health,
+    status: snapshot.status as BackendConnectionStatus,
+    online: snapshot.status === "insightface",
+    localMode: snapshot.status === "local",
+    offline: snapshot.status === "offline",
+    checking: snapshot.status === "checking",
+    wsState: snapshot.wsState,
+    lastError: snapshot.lastError,
+  };
 }

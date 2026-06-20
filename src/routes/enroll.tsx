@@ -12,11 +12,14 @@ import {
   loadIdentities,
   removeIdentity,
   saveIdentities,
+  updateIdentity,
   type Identity,
 } from "@/lib/face-store";
 import { snapshotVideo } from "@/lib/utils-misc";
 import { NightActivePill, NightModeToggle } from "@/components/night-mode-toggle";
 import { ImmersiveShell, CameraStage } from "@/components/immersive-shell";
+import { backendEnrollAngles, backendEnrollIdentity } from "@/lib/lens-backend";
+import { useBackendHealth } from "@/hooks/use-backend-health";
 
 export const Route = createFileRoute("/enroll")({
   head: () => ({
@@ -59,10 +62,16 @@ function speak(text: string) {
   } catch { /* ignore */ }
 }
 
+async function dataUrlToBlob(dataUrl: string) {
+  const response = await fetch(dataUrl);
+  return await response.blob();
+}
+
 function EnrollPage() {
   const { videoRef, ready, error } = useCamera({ facingMode: "user" });
   const { canvasRef, mode, cycleMode, lightLevel, active: nightActive } =
     useNightMode(videoRef);
+  const { status: backendStatus } = useBackendHealth();
   const [name, setName] = useState("");
   const [step, setStep] = useState(0);
   const [faceDetected, setFaceDetected] = useState(false);
@@ -139,6 +148,29 @@ function EnrollPage() {
     else setStep(next);
   };
 
+  const syncBackendEnrollment = async () => {
+    const firstThumb = capturedThumbs.current[0];
+    if (!firstThumb) return;
+    const firstBlob = await dataUrlToBlob(firstThumb);
+    if (!firstBlob) return;
+
+    const backendIdentity = await backendEnrollIdentity({
+      fullName: name.trim(),
+      nin: "",
+      idType: "",
+      groupTag: "",
+      notes: "",
+      image: firstBlob,
+    });
+
+    for (const thumb of capturedThumbs.current.slice(1)) {
+      const blob = await dataUrlToBlob(thumb);
+      if (blob) {
+        await backendEnrollAngles(backendIdentity.id, blob).catch(() => {});
+      }
+    }
+  };
+
   const finish = async () => {
     if (!name.trim()) {
       toast.error("Enter a name first");
@@ -171,16 +203,10 @@ function EnrollPage() {
               ...capturedDescriptors.current,
             ];
             const mergedThumbs = [...match.thumbnails, ...capturedThumbs.current];
-            const items = existing.map((i) =>
-              i.id === match.id
-                ? {
-                    ...i,
-                    descriptors: merged.map((d) => Array.from(d)),
-                    thumbnails: mergedThumbs,
-                  }
-                : i,
-            );
-            saveIdentities(items);
+            updateIdentity(match.id, {
+              descriptors: merged.map((d) => Array.from(d)),
+              thumbnails: mergedThumbs,
+            });
             toast.success(`Added ${capturedDescriptors.current.length} angles to ${match.name}`);
             resetCapture();
             setIdentities(loadIdentities());
@@ -192,6 +218,11 @@ function EnrollPage() {
     const id = addIdentity(name.trim(), capturedDescriptors.current, capturedThumbs.current);
     toast.success(`Identity Locked: ${id.name}`);
     setIdentities(loadIdentities());
+    if (backendStatus === "insightface") {
+      void syncBackendEnrollment().catch(() => {
+        toast.message("Saved locally. Backend sync failed, so the identity will stay in the app cache.");
+      });
+    }
     resetCapture();
   };
 

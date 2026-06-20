@@ -4,6 +4,8 @@ import { bumpDetection, type Identity } from "@/lib/face-store";
 import { addLogEntry } from "@/lib/detection-log";
 import { loadSettings } from "@/lib/settings-store";
 import { snapshotVideo } from "@/lib/utils-misc";
+import { backendIdentify, type BackendDetection } from "@/lib/lens-backend";
+import { useBackendHealth } from "@/hooks/use-backend-health";
 
 export type Match = {
   box: { x: number; y: number; width: number; height: number };
@@ -35,6 +37,7 @@ export function useFaceRecognition(
   onMatches: (m: Match[], displaySize: { w: number; h: number }) => void,
   options: RecognitionOptions = {},
 ) {
+  const { status } = useBackendHealth();
   const idsRef = useRef(identities);
   idsRef.current = identities;
   const cbRef = useRef(onMatches);
@@ -59,6 +62,133 @@ export function useFaceRecognition(
       setBusy(true);
 
       const detectorOpts = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 });
+
+      const sourceMetrics = () => {
+        const src = sourceRef.current;
+        if (!src) return null;
+        const isVideo = src instanceof HTMLVideoElement;
+        const isCanvas = src instanceof HTMLCanvasElement;
+        if (!isVideo && !isCanvas) return null;
+        const sourceW = isVideo ? src.videoWidth : src.width;
+        const sourceH = isVideo ? src.videoHeight : src.height;
+        const displayW = (src as HTMLElement).clientWidth;
+        const displayH = (src as HTMLElement).clientHeight;
+        const cover = Math.max(displayW / Math.max(1, sourceW), displayH / Math.max(1, sourceH));
+        return {
+          sourceW,
+          sourceH,
+          displayW,
+          displayH,
+          scaleX: cover,
+          scaleY: cover,
+          offsetX: (displayW - sourceW * cover) / 2,
+          offsetY: (displayH - sourceH * cover) / 2,
+        };
+      };
+
+      const mapBackendDetections = (detections: BackendDetection[]) => {
+        const metrics = sourceMetrics();
+        if (!metrics) return [] as Match[];
+        return detections.map((d) => {
+          const identity = d.identity_id ? idsRef.current.find((i) => i.id === d.identity_id) : undefined;
+          return {
+            box: {
+              x: d.box.x * metrics.scaleX + metrics.offsetX,
+              y: d.box.y * metrics.scaleY + metrics.offsetY,
+              width: d.box.w * metrics.scaleX,
+              height: d.box.h * metrics.scaleY,
+            },
+            identityId: d.identity_id ?? null,
+            label: identity ? identity.name : d.name || "UNIDENTIFIED",
+            confidence: Math.max(0, Math.min(1, d.confidence)),
+            distance: 1 - Math.max(0, Math.min(1, d.confidence)),
+            age: d.age_estimate,
+            gender: d.gender,
+          };
+        });
+      };
+
+      const localTick = async () => {
+        const src = sourceRef.current;
+        const isVideo = src instanceof HTMLVideoElement;
+        const isCanvas = src instanceof HTMLCanvasElement;
+        if (!src || (isVideo && src.readyState < 2) || (isCanvas && src.width === 0)) {
+          return null;
+        }
+        const detectorSource = isVideo || isCanvas ? src : null;
+        if (!detectorSource) return null;
+        try {
+          const wantExtras = optsRef.current.withExtras && (settings.showAge || settings.showEmotion || settings.showGender);
+          const detections = await faceapi
+            .detectAllFaces(detectorSource as HTMLVideoElement | HTMLCanvasElement, detectorOpts)
+            .withFaceLandmarks()
+            .withFaceDescriptors();
+          let extras: Array<{ age: number; gender: string; genderProbability: number; expressions?: Record<string, number> }> = [];
+          if (wantExtras && detections.length) {
+            try {
+              const extra = await faceapi
+                .detectAllFaces(detectorSource as HTMLVideoElement | HTMLCanvasElement, detectorOpts)
+                .withFaceLandmarks()
+                .withFaceExpressions()
+                .withAgeAndGender();
+              extras = extra.map((e) => ({
+                age: e.age,
+                gender: e.gender,
+                genderProbability: e.genderProbability,
+                expressions: e.expressions as unknown as Record<string, number>,
+              }));
+            } catch { /* extras not ready */ }
+          }
+
+          const metrics = sourceMetrics();
+          if (!metrics) return null;
+          const matcher = buildMatcher();
+          const MIN_DISPLAY_CONF = 0.6;
+          const matches: Match[] = detections.map((d, idx) => {
+            const best = matcher ? matcher.findBestMatch(d.descriptor) : null;
+            const distance = best ? best.distance : 1;
+            const confidence = Math.max(0, Math.min(1, 1 - distance));
+            const matched = best && best.label !== "unknown" && confidence >= MIN_DISPLAY_CONF;
+            const id = matched ? best.label : null;
+            const identity = id ? idsRef.current.find((i) => i.id === id) : undefined;
+
+            let age: number | undefined;
+            let gender: string | undefined;
+            let genderProbability: number | undefined;
+            let expression: string | undefined;
+            if (extras[idx]) {
+              const e = extras[idx];
+              age = e.age;
+              gender = e.gender;
+              genderProbability = e.genderProbability;
+              if (e.expressions) {
+                expression = Object.entries(e.expressions).sort((a, b) => b[1] - a[1])[0]?.[0];
+              }
+            }
+
+            return {
+              box: {
+                x: d.detection.box.x * metrics.scaleX + metrics.offsetX,
+                y: d.detection.box.y * metrics.scaleY + metrics.offsetY,
+                width: d.detection.box.width * metrics.scaleX,
+                height: d.detection.box.height * metrics.scaleY,
+              },
+              identityId: id,
+              label: identity ? identity.name : "UNIDENTIFIED",
+              confidence,
+              distance,
+              age,
+              gender,
+              genderProbability,
+              expression,
+            };
+          });
+
+          return { matches, displayW: metrics.displayW, displayH: metrics.displayH, src: detectorSource };
+        } catch {
+          return null;
+        }
+      };
 
       const buildMatcher = () => {
         const ids = idsRef.current;
@@ -89,85 +219,31 @@ export function useFaceRecognition(
         }
         try {
           const s = loadSettings();
-          const wantExtras =
-            optsRef.current.withExtras &&
-            (s.showAge || s.showEmotion || s.showGender);
+          const wantBackend = status === "insightface";
+          let matches: Match[] = [];
+          let displayW = 0;
+          let displayH = 0;
 
-          const detections = await faceapi
-            .detectAllFaces(src as HTMLVideoElement, detectorOpts)
-            .withFaceLandmarks()
-            .withFaceDescriptors();
-          let extras: Array<{ age: number; gender: string; genderProbability: number; expressions?: Record<string, number> }> = [];
-          if (wantExtras && detections.length) {
-            try {
-              const extra = await faceapi
-                .detectAllFaces(src as HTMLVideoElement, detectorOpts)
-                .withFaceLandmarks()
-                .withFaceExpressions()
-                .withAgeAndGender();
-              extras = extra.map((e) => ({
-                age: e.age,
-                gender: e.gender,
-                genderProbability: e.genderProbability,
-                expressions: e.expressions as unknown as Record<string, number>,
-              }));
-            } catch { /* extras not ready */ }
+          if (wantBackend) {
+            const blob = await captureSourceBlob(src as HTMLVideoElement | HTMLCanvasElement);
+            const backendDetections = blob ? await backendIdentify(blob) : null;
+            if (backendDetections && backendDetections.length) {
+              const mapped = mapBackendDetections(backendDetections);
+              matches = mapped;
+              const metrics = sourceMetrics();
+              displayW = metrics?.displayW ?? 0;
+              displayH = metrics?.displayH ?? 0;
+            }
           }
 
-          const matcher = buildMatcher();
-          const sourceW = isVideo ? (src as HTMLVideoElement).videoWidth : (src as HTMLCanvasElement).width;
-          const sourceH = isVideo ? (src as HTMLVideoElement).videoHeight : (src as HTMLCanvasElement).height;
-          const displayW = (src as HTMLElement).clientWidth;
-          const displayH = (src as HTMLElement).clientHeight;
-          // object-fit: cover math — pick the larger scale so the source fills
-          // the display, then offset by the cropped overflow so bounding boxes
-          // land on the actual face in the visible frame.
-          const cover = Math.max(displayW / Math.max(1, sourceW), displayH / Math.max(1, sourceH));
-          const scaleX = cover;
-          const scaleY = cover;
-          const offsetX = (displayW - sourceW * cover) / 2;
-          const offsetY = (displayH - sourceH * cover) / 2;
-
-          const MIN_DISPLAY_CONF = 0.6; // hard floor — never label below 60%
-          const matches: Match[] = detections.map((d, idx) => {
-            const best = matcher ? matcher.findBestMatch(d.descriptor) : null;
-            const distance = best ? best.distance : 1;
-            const confidence = Math.max(0, Math.min(1, 1 - distance));
-            const matched = best && best.label !== "unknown" && confidence >= MIN_DISPLAY_CONF;
-            const id = matched ? best.label : null;
-            const identity = id ? idsRef.current.find((i) => i.id === id) : undefined;
-
-            let age: number | undefined;
-            let gender: string | undefined;
-            let genderProbability: number | undefined;
-            let expression: string | undefined;
-            if (extras[idx]) {
-              const e = extras[idx];
-              age = e.age;
-              gender = e.gender;
-              genderProbability = e.genderProbability;
-              if (e.expressions) {
-                expression = Object.entries(e.expressions).sort((a, b) => b[1] - a[1])[0]?.[0];
-              }
+          if (!matches.length) {
+            const local = await localTick();
+            if (local) {
+              matches = local.matches;
+              displayW = local.displayW;
+              displayH = local.displayH;
             }
-
-            return {
-              box: {
-                x: d.detection.box.x * scaleX + offsetX,
-                y: d.detection.box.y * scaleY + offsetY,
-                width: d.detection.box.width * scaleX,
-                height: d.detection.box.height * scaleY,
-              },
-              identityId: id,
-              label: identity ? identity.name : "UNIDENTIFIED",
-              confidence,
-              distance,
-              age,
-              gender,
-              genderProbability,
-              expression,
-            };
-          });
+          }
 
           // Auto-log + bump detection counts (throttled).
           if (optsRef.current.autoLog !== false && s.autoSnapshot) {
@@ -207,9 +283,27 @@ export function useFaceRecognition(
       setBusy(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, sourceRef]);
+  }, [enabled, sourceRef, status]);
 
   return { busy };
+}
+
+async function captureSourceBlob(src: HTMLVideoElement | HTMLCanvasElement, size = 640): Promise<Blob | null> {
+  try {
+    const canvas = document.createElement("canvas");
+    const sourceW = src instanceof HTMLVideoElement ? src.videoWidth : src.width;
+    const sourceH = src instanceof HTMLVideoElement ? src.videoHeight : src.height;
+    if (!sourceW || !sourceH) return null;
+    const ratio = Math.min(size / sourceW, size / sourceH);
+    canvas.width = Math.max(1, Math.round(sourceW * ratio));
+    canvas.height = Math.max(1, Math.round(sourceH * ratio));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(src, 0, 0, canvas.width, canvas.height);
+    return await new Promise<Blob | null>((resolve) => canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.9));
+  } catch {
+    return null;
+  }
 }
 
 function snapshotSource(src: HTMLVideoElement | HTMLCanvasElement, size: number): string {

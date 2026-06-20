@@ -1,4 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
+import {
+  backendDeleteIdentity,
+  backendListIdentities,
+  backendUpdateIdentity,
+  type BackendIdentity,
+} from "@/lib/lens-backend";
 
 export type CloudIdentity = {
   id: string;
@@ -29,19 +35,40 @@ export async function listIdentities(opts?: {
   search?: string;
   group?: string;
 }): Promise<CloudIdentity[]> {
-  let q = supabase
-    .from("identities")
-    .select("*")
-    .eq("is_active", true)
-    .order("enrolled_at", { ascending: false });
-  if (opts?.group && opts.group !== "all") q = q.eq("group_tag", opts.group);
-  if (opts?.search) {
-    const s = opts.search.replace(/[%_]/g, "");
-    q = q.or(`full_name.ilike.%${s}%,nin.ilike.%${s}%`);
+  try {
+    const remote = await backendListIdentities(opts);
+    return remote.map((item: BackendIdentity) => ({
+      id: item.id,
+      user_id: "backend",
+      full_name: item.full_name,
+      nin: item.nin,
+      id_type: item.id_type,
+      date_of_birth: (item["date_of_birth"] as string | null) ?? null,
+      gender: (item["gender"] as string | null) ?? null,
+      nationality: (item["nationality"] as string | null) ?? null,
+      photo_url: item.photo_url,
+      embedding: item.embedding ?? null,
+      embeddings_multi: item.embeddings_multi ?? [],
+      group_tag: item.group_tag,
+      notes: (item.notes as string | null) ?? null,
+      enrolled_at: item.enrolled_at ?? new Date().toISOString(),
+      is_active: item.is_active ?? true,
+    }));
+  } catch {
+    let q = supabase
+      .from("identities")
+      .select("*")
+      .eq("is_active", true)
+      .order("enrolled_at", { ascending: false });
+    if (opts?.group && opts.group !== "all") q = q.eq("group_tag", opts.group);
+    if (opts?.search) {
+      const s = opts.search.replace(/[%_]/g, "");
+      q = q.or(`full_name.ilike.%${s}%,nin.ilike.%${s}%`);
+    }
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data ?? []) as CloudIdentity[];
   }
-  const { data, error } = await q;
-  if (error) throw error;
-  return (data ?? []) as CloudIdentity[];
 }
 
 export async function createIdentity(payload: NewIdentity): Promise<CloudIdentity> {
@@ -61,13 +88,21 @@ export async function createIdentity(payload: NewIdentity): Promise<CloudIdentit
 }
 
 export async function updateIdentity(id: string, patch: Partial<CloudIdentity>) {
-  const { error } = await supabase.from("identities").update(patch).eq("id", id);
-  if (error) throw error;
+  try {
+    await backendUpdateIdentity(id, patch);
+  } catch {
+    const { error } = await supabase.from("identities").update(patch).eq("id", id);
+    if (error) throw error;
+  }
 }
 
 export async function deleteIdentity(id: string) {
-  const { error } = await supabase.from("identities").delete().eq("id", id);
-  if (error) throw error;
+  try {
+    await backendDeleteIdentity(id);
+  } catch {
+    const { error } = await supabase.from("identities").delete().eq("id", id);
+    if (error) throw error;
+  }
 }
 
 export async function appendEmbedding(id: string, embedding: number[]) {
@@ -82,10 +117,15 @@ export async function appendEmbedding(id: string, embedding: number[]) {
 }
 
 export async function countIdentities(): Promise<number> {
-  const { count, error } = await supabase
-    .from("identities")
-    .select("*", { head: true, count: "exact" })
-    .eq("is_active", true);
-  if (error) throw error;
-  return count ?? 0;
+  try {
+    const remote = await backendListIdentities();
+    return remote.length;
+  } catch {
+    const { count, error } = await supabase
+      .from("identities")
+      .select("*", { head: true, count: "exact" })
+      .eq("is_active", true);
+    if (error) throw error;
+    return count ?? 0;
+  }
 }

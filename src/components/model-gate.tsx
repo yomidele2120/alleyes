@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { loadFaceApi, loadExtras } from "@/lib/face-api-loader";
 import { loadSettings } from "@/lib/settings-store";
+import { backendConnection } from "@/lib/lens-backend";
 
 export function ModelGate({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -27,9 +28,13 @@ export function ModelGate({ children }: { children: React.ReactNode }) {
           setMsg("Loading intelligence...");
           try { await loadExtras(); } catch { /* non-fatal */ }
         }
+        backendConnection.setLocalReady(true);
         setReady(true);
       })
-      .catch((e) => setErr(e instanceof Error ? e.message : "Failed to initialize"));
+      .catch((e) => {
+        backendConnection.setLocalReady(false);
+        setErr(e instanceof Error ? e.message : "Failed to initialize");
+      });
   }, []);
 
   if (err) {

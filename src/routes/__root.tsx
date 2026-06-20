@@ -12,6 +12,9 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { useBackendHealth } from "@/hooks/use-backend-health";
+import { syncIdentitiesFromBackend } from "@/lib/face-store";
+import { syncLogFromBackend } from "@/lib/detection-log";
 
 function NotFoundComponent() {
   return (
@@ -140,8 +143,21 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
+      <BackendBootstrap />
       <Outlet />
       <Toaster position="top-center" theme="dark" />
     </QueryClientProvider>
   );
+}
+
+function BackendBootstrap() {
+  const { status } = useBackendHealth();
+
+  useEffect(() => {
+    if (status !== "insightface") return;
+    void syncIdentitiesFromBackend();
+    void syncLogFromBackend();
+  }, [status]);
+
+  return null;
 }

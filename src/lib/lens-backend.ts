@@ -80,8 +80,8 @@ type ConnectionSnapshot = {
   lastError: string | null;
 };
 
-const DEFAULT_BACKEND_URL = "http://localhost:8000";
-const DEFAULT_WS_URL = "ws://localhost:3001/ws";
+const DEFAULT_BACKEND_URL = "https://lenzbackend-production.up.railway.app";
+const DEFAULT_WS_URL = "wss://lenzbackend-production.up.railway.app/ws";
 const HEALTH_TIMEOUT_MS = 5000;
 const API_TIMEOUT_MS = 12000;
 const RECONNECT_DELAY_MS = 3000;
@@ -92,14 +92,12 @@ function trimTrailingSlash(value: string) {
 
 export function backendUrl() {
   const env = import.meta.env.VITE_BACKEND_URL as string | undefined;
-  const settingsUrl = typeof window === "undefined" ? undefined : loadSettings().backendUrl;
-  return trimTrailingSlash(env || settingsUrl || DEFAULT_BACKEND_URL);
+  return trimTrailingSlash(env || DEFAULT_BACKEND_URL);
 }
 
 export function wsUrl() {
   const env = import.meta.env.VITE_WS_URL as string | undefined;
-  const settingsUrl = typeof window === "undefined" ? undefined : loadSettings().wsUrl;
-  return trimTrailingSlash(env || settingsUrl || DEFAULT_WS_URL);
+  return trimTrailingSlash(env || DEFAULT_WS_URL);
 }
 
 export function mediamtxUrl() {

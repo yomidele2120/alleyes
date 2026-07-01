@@ -31,7 +31,6 @@ export type DojahVerifyResult = {
     quality: number;
     passed: boolean;
   };
-  raw?: unknown;
 };
 
 /**

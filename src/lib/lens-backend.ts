@@ -156,7 +156,7 @@ async function parseJsonResponse<T>(res: Response): Promise<T> {
 }
 
 async function requestJson<T>(path: string, init: RequestInit = {}, timeoutMs = API_TIMEOUT_MS): Promise<T> {
-  const { signal, cleanup } = composeAbortSignal(init.signal, timeoutMs);
+  const { signal, cleanup } = composeAbortSignal(init.signal ?? undefined, timeoutMs);
   try {
     const res = await fetch(`${backendUrl()}${path}`, {
       ...init,

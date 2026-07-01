@@ -18,6 +18,8 @@ export type Identity = {
   thumbnails: string[];
   group: string; // "Family" | "Team" | "Watch List" | custom | ""
   notes: string;
+  /** Optional Nigerian ID number for Dojah KYC lookup. */
+  nin?: string;
   detectionCount: number;
   lastSeen: number | null;
   firstEnrolled: number;

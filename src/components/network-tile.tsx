@@ -108,11 +108,12 @@ export function NetworkTile({
     if (status !== "live") return;
     let alive = true;
     let timer: number | null = null;
+    let offDetection: (() => void) | null = null;
 
     (async () => {
       const faceapi = await loadFaceApi();
       const detectorOpts = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 });
-      const offDetection = backendConnection.on("detection", (detail) => {
+      offDetection = backendConnection.on("detection", (detail) => {
         if (backendStatus !== "insightface") return;
         const payload = detail as { feed_name?: string; camera_name?: string; detections?: unknown };
         const feedName = payload.feed_name || payload.camera_name;
@@ -121,6 +122,7 @@ export function NetworkTile({
         if (!detections.length) return;
         setMatches(mapBackendDetections(detections));
       });
+
 
       const metrics = () => {
         const source: HTMLVideoElement | HTMLImageElement | null =
@@ -284,7 +286,7 @@ export function NetworkTile({
     return () => {
       alive = false;
       if (timer) clearTimeout(timer);
-      offDetection();
+      offDetection?.();
     };
   }, [backendStatus, feed, identities, targetIds, onTargetFound]);
 

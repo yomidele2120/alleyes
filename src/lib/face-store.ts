@@ -18,6 +18,8 @@ export type Identity = {
   thumbnails: string[];
   group: string; // "Family" | "Team" | "Watch List" | custom | ""
   notes: string;
+  /** Optional Nigerian ID number for Dojah KYC lookup. */
+  nin?: string;
   detectionCount: number;
   lastSeen: number | null;
   firstEnrolled: number;
@@ -55,6 +57,7 @@ function mapBackendIdentity(item: BackendIdentity): Identity {
     thumbnails: item.photo_url ? [item.photo_url] : [],
     group: item.group_tag || "",
     notes: item.notes || "",
+    nin: item.nin || undefined,
     detectionCount: 0,
     lastSeen: null,
     firstEnrolled: item.enrolled_at ? new Date(item.enrolled_at).getTime() : Date.now(),

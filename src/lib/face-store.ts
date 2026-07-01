@@ -57,6 +57,7 @@ function mapBackendIdentity(item: BackendIdentity): Identity {
     thumbnails: item.photo_url ? [item.photo_url] : [],
     group: item.group_tag || "",
     notes: item.notes || "",
+    nin: item.nin || undefined,
     detectionCount: 0,
     lastSeen: null,
     firstEnrolled: item.enrolled_at ? new Date(item.enrolled_at).getTime() : Date.now(),

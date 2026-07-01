@@ -110,7 +110,6 @@ export const dojahVerifyNin = createServerFn({ method: "POST" })
           ok: false,
           error: j?.error || j?.message || `Dojah request failed (${res.status})`,
           liveness,
-          raw: j,
         };
       }
 
@@ -127,7 +126,6 @@ export const dojahVerifyNin = createServerFn({ method: "POST" })
             }
           : undefined,
         liveness,
-        raw: j,
       };
     } catch (e) {
       return {

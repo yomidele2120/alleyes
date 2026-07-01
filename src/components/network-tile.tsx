@@ -286,7 +286,7 @@ export function NetworkTile({
     return () => {
       alive = false;
       if (timer) clearTimeout(timer);
-      offDetection();
+      offDetection?.();
     };
   }, [backendStatus, feed, identities, targetIds, onTargetFound]);
 

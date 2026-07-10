@@ -21,7 +21,7 @@ import { Route as CamerasRouteImport } from './routes/cameras'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIdRouteImport } from './routes/profile.$id'
-import { Route as ApiDojahDiagRouteImport } from './routes/api/dojah-diag'
+import { Route as ApiPublicDojahDiagRouteImport } from './routes/api/public/dojah-diag'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -83,9 +83,9 @@ const ProfileIdRoute = ProfileIdRouteImport.update({
   path: '/profile/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiDojahDiagRoute = ApiDojahDiagRouteImport.update({
-  id: '/api/dojah-diag',
-  path: '/api/dojah-diag',
+const ApiPublicDojahDiagRoute = ApiPublicDojahDiagRouteImport.update({
+  id: '/api/public/dojah-diag',
+  path: '/api/public/dojah-diag',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -101,8 +101,8 @@ export interface FileRoutesByFullPath {
   '/network': typeof NetworkRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
-  '/api/dojah-diag': typeof ApiDojahDiagRoute
   '/profile/$id': typeof ProfileIdRoute
+  '/api/public/dojah-diag': typeof ApiPublicDojahDiagRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -116,8 +116,8 @@ export interface FileRoutesByTo {
   '/network': typeof NetworkRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
-  '/api/dojah-diag': typeof ApiDojahDiagRoute
   '/profile/$id': typeof ProfileIdRoute
+  '/api/public/dojah-diag': typeof ApiPublicDojahDiagRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -132,8 +132,8 @@ export interface FileRoutesById {
   '/network': typeof NetworkRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
-  '/api/dojah-diag': typeof ApiDojahDiagRoute
   '/profile/$id': typeof ProfileIdRoute
+  '/api/public/dojah-diag': typeof ApiPublicDojahDiagRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -149,8 +149,8 @@ export interface FileRouteTypes {
     | '/network'
     | '/search'
     | '/settings'
-    | '/api/dojah-diag'
     | '/profile/$id'
+    | '/api/public/dojah-diag'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -164,8 +164,8 @@ export interface FileRouteTypes {
     | '/network'
     | '/search'
     | '/settings'
-    | '/api/dojah-diag'
     | '/profile/$id'
+    | '/api/public/dojah-diag'
   id:
     | '__root__'
     | '/'
@@ -179,8 +179,8 @@ export interface FileRouteTypes {
     | '/network'
     | '/search'
     | '/settings'
-    | '/api/dojah-diag'
     | '/profile/$id'
+    | '/api/public/dojah-diag'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -195,8 +195,8 @@ export interface RootRouteChildren {
   NetworkRoute: typeof NetworkRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
-  ApiDojahDiagRoute: typeof ApiDojahDiagRoute
   ProfileIdRoute: typeof ProfileIdRoute
+  ApiPublicDojahDiagRoute: typeof ApiPublicDojahDiagRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -285,11 +285,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/dojah-diag': {
-      id: '/api/dojah-diag'
-      path: '/api/dojah-diag'
-      fullPath: '/api/dojah-diag'
-      preLoaderRoute: typeof ApiDojahDiagRouteImport
+    '/api/public/dojah-diag': {
+      id: '/api/public/dojah-diag'
+      path: '/api/public/dojah-diag'
+      fullPath: '/api/public/dojah-diag'
+      preLoaderRoute: typeof ApiPublicDojahDiagRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -307,8 +307,8 @@ const rootRouteChildren: RootRouteChildren = {
   NetworkRoute: NetworkRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
-  ApiDojahDiagRoute: ApiDojahDiagRoute,
   ProfileIdRoute: ProfileIdRoute,
+  ApiPublicDojahDiagRoute: ApiPublicDojahDiagRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

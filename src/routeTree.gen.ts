@@ -21,6 +21,7 @@ import { Route as CamerasRouteImport } from './routes/cameras'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIdRouteImport } from './routes/profile.$id'
+import { Route as ApiDojahDiagRouteImport } from './routes/api/dojah-diag'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -82,6 +83,11 @@ const ProfileIdRoute = ProfileIdRouteImport.update({
   path: '/profile/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDojahDiagRoute = ApiDojahDiagRouteImport.update({
+  id: '/api/dojah-diag',
+  path: '/api/dojah-diag',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/network': typeof NetworkRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/api/dojah-diag': typeof ApiDojahDiagRoute
   '/profile/$id': typeof ProfileIdRoute
 }
 export interface FileRoutesByTo {
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/network': typeof NetworkRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/api/dojah-diag': typeof ApiDojahDiagRoute
   '/profile/$id': typeof ProfileIdRoute
 }
 export interface FileRoutesById {
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/network': typeof NetworkRoute
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
+  '/api/dojah-diag': typeof ApiDojahDiagRoute
   '/profile/$id': typeof ProfileIdRoute
 }
 export interface FileRouteTypes {
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/network'
     | '/search'
     | '/settings'
+    | '/api/dojah-diag'
     | '/profile/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/network'
     | '/search'
     | '/settings'
+    | '/api/dojah-diag'
     | '/profile/$id'
   id:
     | '__root__'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/network'
     | '/search'
     | '/settings'
+    | '/api/dojah-diag'
     | '/profile/$id'
   fileRoutesById: FileRoutesById
 }
@@ -183,6 +195,7 @@ export interface RootRouteChildren {
   NetworkRoute: typeof NetworkRoute
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
+  ApiDojahDiagRoute: typeof ApiDojahDiagRoute
   ProfileIdRoute: typeof ProfileIdRoute
 }
 
@@ -272,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/dojah-diag': {
+      id: '/api/dojah-diag'
+      path: '/api/dojah-diag'
+      fullPath: '/api/dojah-diag'
+      preLoaderRoute: typeof ApiDojahDiagRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -287,18 +307,9 @@ const rootRouteChildren: RootRouteChildren = {
   NetworkRoute: NetworkRoute,
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
+  ApiDojahDiagRoute: ApiDojahDiagRoute,
   ProfileIdRoute: ProfileIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -11,6 +11,8 @@ import {
   Users,
   LogOut,
   LogIn,
+  IdCard,
+  ShieldAlert,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";

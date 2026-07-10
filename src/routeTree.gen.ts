@@ -23,6 +23,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AmlRouteImport } from './routes/aml'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIdRouteImport } from './routes/profile.$id'
+import { Route as ApiPublicDojahDiagRouteImport } from './routes/api/public/dojah-diag'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -94,6 +95,11 @@ const ProfileIdRoute = ProfileIdRouteImport.update({
   path: '/profile/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicDojahDiagRoute = ApiPublicDojahDiagRouteImport.update({
+  id: '/api/public/dojah-diag',
+  path: '/api/public/dojah-diag',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/profile/$id': typeof ProfileIdRoute
+  '/api/public/dojah-diag': typeof ApiPublicDojahDiagRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/profile/$id': typeof ProfileIdRoute
+  '/api/public/dojah-diag': typeof ApiPublicDojahDiagRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/profile/$id': typeof ProfileIdRoute
+  '/api/public/dojah-diag': typeof ApiPublicDojahDiagRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/profile/$id'
+    | '/api/public/dojah-diag'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/profile/$id'
+    | '/api/public/dojah-diag'
   id:
     | '__root__'
     | '/'
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/settings'
     | '/profile/$id'
+    | '/api/public/dojah-diag'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -210,6 +222,7 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   ProfileIdRoute: typeof ProfileIdRoute
+  ApiPublicDojahDiagRoute: typeof ApiPublicDojahDiagRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -312,6 +325,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/dojah-diag': {
+      id: '/api/public/dojah-diag'
+      path: '/api/public/dojah-diag'
+      fullPath: '/api/public/dojah-diag'
+      preLoaderRoute: typeof ApiPublicDojahDiagRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -330,6 +350,7 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   ProfileIdRoute: ProfileIdRoute,
+  ApiPublicDojahDiagRoute: ApiPublicDojahDiagRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

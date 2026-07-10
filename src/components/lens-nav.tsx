@@ -28,6 +28,8 @@ const ITEMS = [
   { to: "/cameras", label: "Cameras", icon: Server },
   { to: "/enroll", label: "Enroll", icon: UserPlus },
   { to: "/identify", label: "Identify", icon: Eye },
+  { to: "/kyc", label: "KYC", icon: IdCard },
+  { to: "/aml", label: "AML", icon: ShieldAlert },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
 ] as const;
 

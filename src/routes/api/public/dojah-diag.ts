@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 // Temporary diagnostic — tests Dojah sandbox connectivity + credentials.
 // Safe: returns only shape/status info, never the secret values themselves.
-export const Route = createFileRoute("/api/dojah-diag")({
+export const Route = createFileRoute("/api/public/dojah-diag")({
   server: {
     handlers: {
       GET: async () => {

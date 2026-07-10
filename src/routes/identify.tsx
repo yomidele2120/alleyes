@@ -91,15 +91,9 @@ function IdentifyPage() {
           </>
         }
         bottom={
-          identities.length === 0 ? (
-            <p className="text-center text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
-              No enrolled identities — every face reads as UNIDENTIFIED
-            </p>
-          ) : (
-            <p className="text-center text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-              Tap a labeled face to view full intel
-            </p>
-          )
+          <p className="text-center text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+            Tap any face — labeled opens intel, unknown opens Dojah NIN lookup
+          </p>
         }
       >
         <CameraStage

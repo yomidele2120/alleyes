@@ -40,6 +40,17 @@ function IdentifyPage() {
   const [identities, setIdentities] = useState<Identity[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [selected, setSelected] = useState<{ id: string; match: Match } | null>(null);
+  const [unknown, setUnknown] = useState<{ snapshot: string | null } | null>(null);
+
+  const snapFrame = (): string | null => {
+    const v = videoRef.current;
+    if (!v || !v.videoWidth) return null;
+    const c = document.createElement("canvas");
+    c.width = v.videoWidth;
+    c.height = v.videoHeight;
+    c.getContext("2d")?.drawImage(v, 0, 0);
+    return c.toDataURL("image/jpeg", 0.85);
+  };
 
   useEffect(() => {
     const sync = () => setIdentities(loadIdentities());

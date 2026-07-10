@@ -9,6 +9,7 @@ import { useNightMode } from "@/hooks/use-night-mode";
 import { loadIdentities, type Identity } from "@/lib/face-store";
 import { BoundingBox } from "@/components/bounding-box";
 import { FaceIntelPanel } from "@/components/face-intel-panel";
+import { DojahLookupSheet } from "@/components/dojah-lookup-sheet";
 import { NightActivePill, NightModeToggle } from "@/components/night-mode-toggle";
 import { ImmersiveShell, CameraStage } from "@/components/immersive-shell";
 

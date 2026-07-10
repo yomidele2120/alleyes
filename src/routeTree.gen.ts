@@ -14,6 +14,7 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as NetworkRouteImport } from './routes/network'
 import { Route as LogRouteImport } from './routes/log'
 import { Route as LiveRouteImport } from './routes/live'
+import { Route as KycRouteImport } from './routes/kyc'
 import { Route as IdentitiesRouteImport } from './routes/identities'
 import { Route as IdentifyRouteImport } from './routes/identify'
 import { Route as EnrollRouteImport } from './routes/enroll'
@@ -45,6 +46,11 @@ const LogRoute = LogRouteImport.update({
 const LiveRoute = LiveRouteImport.update({
   id: '/live',
   path: '/live',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KycRoute = KycRouteImport.update({
+  id: '/kyc',
+  path: '/kyc',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IdentitiesRoute = IdentitiesRouteImport.update({
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/enroll': typeof EnrollRoute
   '/identify': typeof IdentifyRoute
   '/identities': typeof IdentitiesRoute
+  '/kyc': typeof KycRoute
   '/live': typeof LiveRoute
   '/log': typeof LogRoute
   '/network': typeof NetworkRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/enroll': typeof EnrollRoute
   '/identify': typeof IdentifyRoute
   '/identities': typeof IdentitiesRoute
+  '/kyc': typeof KycRoute
   '/live': typeof LiveRoute
   '/log': typeof LogRoute
   '/network': typeof NetworkRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/enroll': typeof EnrollRoute
   '/identify': typeof IdentifyRoute
   '/identities': typeof IdentitiesRoute
+  '/kyc': typeof KycRoute
   '/live': typeof LiveRoute
   '/log': typeof LogRoute
   '/network': typeof NetworkRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/enroll'
     | '/identify'
     | '/identities'
+    | '/kyc'
     | '/live'
     | '/log'
     | '/network'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/enroll'
     | '/identify'
     | '/identities'
+    | '/kyc'
     | '/live'
     | '/log'
     | '/network'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/enroll'
     | '/identify'
     | '/identities'
+    | '/kyc'
     | '/live'
     | '/log'
     | '/network'
@@ -178,6 +190,7 @@ export interface RootRouteChildren {
   EnrollRoute: typeof EnrollRoute
   IdentifyRoute: typeof IdentifyRoute
   IdentitiesRoute: typeof IdentitiesRoute
+  KycRoute: typeof KycRoute
   LiveRoute: typeof LiveRoute
   LogRoute: typeof LogRoute
   NetworkRoute: typeof NetworkRoute
@@ -221,6 +234,13 @@ declare module '@tanstack/react-router' {
       path: '/live'
       fullPath: '/live'
       preLoaderRoute: typeof LiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kyc': {
+      id: '/kyc'
+      path: '/kyc'
+      fullPath: '/kyc'
+      preLoaderRoute: typeof KycRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/identities': {
@@ -282,6 +302,7 @@ const rootRouteChildren: RootRouteChildren = {
   EnrollRoute: EnrollRoute,
   IdentifyRoute: IdentifyRoute,
   IdentitiesRoute: IdentitiesRoute,
+  KycRoute: KycRoute,
   LiveRoute: LiveRoute,
   LogRoute: LogRoute,
   NetworkRoute: NetworkRoute,

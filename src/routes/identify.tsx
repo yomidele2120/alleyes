@@ -113,7 +113,7 @@ function IdentifyPage() {
                   onClick={
                     m.identityId
                       ? () => setSelected({ id: m.identityId!, match: m })
-                      : undefined
+                      : () => setUnknown({ snapshot: snapFrame() })
                   }
                 />
               ))}
@@ -128,15 +128,14 @@ function IdentifyPage() {
           match={selected.match}
           feedName="Local Camera"
           onClose={() => setSelected(null)}
-          getSnapshot={() => {
-            const v = videoRef.current;
-            if (!v || !v.videoWidth) return null;
-            const c = document.createElement("canvas");
-            c.width = v.videoWidth;
-            c.height = v.videoHeight;
-            c.getContext("2d")?.drawImage(v, 0, 0);
-            return c.toDataURL("image/jpeg", 0.85);
-          }}
+          getSnapshot={snapFrame}
+        />
+      )}
+
+      {unknown && (
+        <DojahLookupSheet
+          onClose={() => setUnknown(null)}
+          getSnapshot={() => unknown.snapshot}
         />
       )}
     </>

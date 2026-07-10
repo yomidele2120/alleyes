@@ -11,6 +11,8 @@ import {
   Users,
   LogOut,
   LogIn,
+  IdCard,
+  ShieldAlert,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
@@ -26,6 +28,8 @@ const ITEMS = [
   { to: "/cameras", label: "Cameras", icon: Server },
   { to: "/enroll", label: "Enroll", icon: UserPlus },
   { to: "/identify", label: "Identify", icon: Eye },
+  { to: "/kyc", label: "KYC", icon: IdCard },
+  { to: "/aml", label: "AML", icon: ShieldAlert },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
 ] as const;
 

@@ -9,6 +9,7 @@ import { useNightMode } from "@/hooks/use-night-mode";
 import { loadIdentities, type Identity } from "@/lib/face-store";
 import { BoundingBox } from "@/components/bounding-box";
 import { FaceIntelPanel } from "@/components/face-intel-panel";
+import { DojahLookupSheet } from "@/components/dojah-lookup-sheet";
 import { NightActivePill, NightModeToggle } from "@/components/night-mode-toggle";
 import { ImmersiveShell, CameraStage } from "@/components/immersive-shell";
 
@@ -39,6 +40,17 @@ function IdentifyPage() {
   const [identities, setIdentities] = useState<Identity[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [selected, setSelected] = useState<{ id: string; match: Match } | null>(null);
+  const [unknown, setUnknown] = useState<{ snapshot: string | null } | null>(null);
+
+  const snapFrame = (): string | null => {
+    const v = videoRef.current;
+    if (!v || !v.videoWidth) return null;
+    const c = document.createElement("canvas");
+    c.width = v.videoWidth;
+    c.height = v.videoHeight;
+    c.getContext("2d")?.drawImage(v, 0, 0);
+    return c.toDataURL("image/jpeg", 0.85);
+  };
 
   useEffect(() => {
     const sync = () => setIdentities(loadIdentities());
@@ -79,15 +91,9 @@ function IdentifyPage() {
           </>
         }
         bottom={
-          identities.length === 0 ? (
-            <p className="text-center text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
-              No enrolled identities — every face reads as UNIDENTIFIED
-            </p>
-          ) : (
-            <p className="text-center text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-              Tap a labeled face to view full intel
-            </p>
-          )
+          <p className="text-center text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+            Tap any face — labeled opens intel, unknown opens Dojah NIN lookup
+          </p>
         }
       >
         <CameraStage
@@ -107,7 +113,7 @@ function IdentifyPage() {
                   onClick={
                     m.identityId
                       ? () => setSelected({ id: m.identityId!, match: m })
-                      : undefined
+                      : () => setUnknown({ snapshot: snapFrame() })
                   }
                 />
               ))}
@@ -122,15 +128,14 @@ function IdentifyPage() {
           match={selected.match}
           feedName="Local Camera"
           onClose={() => setSelected(null)}
-          getSnapshot={() => {
-            const v = videoRef.current;
-            if (!v || !v.videoWidth) return null;
-            const c = document.createElement("canvas");
-            c.width = v.videoWidth;
-            c.height = v.videoHeight;
-            c.getContext("2d")?.drawImage(v, 0, 0);
-            return c.toDataURL("image/jpeg", 0.85);
-          }}
+          getSnapshot={snapFrame}
+        />
+      )}
+
+      {unknown && (
+        <DojahLookupSheet
+          onClose={() => setUnknown(null)}
+          getSnapshot={() => unknown.snapshot}
         />
       )}
     </>

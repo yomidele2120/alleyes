@@ -14,11 +14,13 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as NetworkRouteImport } from './routes/network'
 import { Route as LogRouteImport } from './routes/log'
 import { Route as LiveRouteImport } from './routes/live'
+import { Route as KycRouteImport } from './routes/kyc'
 import { Route as IdentitiesRouteImport } from './routes/identities'
 import { Route as IdentifyRouteImport } from './routes/identify'
 import { Route as EnrollRouteImport } from './routes/enroll'
 import { Route as CamerasRouteImport } from './routes/cameras'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AmlRouteImport } from './routes/aml'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIdRouteImport } from './routes/profile.$id'
 
@@ -47,6 +49,11 @@ const LiveRoute = LiveRouteImport.update({
   path: '/live',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KycRoute = KycRouteImport.update({
+  id: '/kyc',
+  path: '/kyc',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IdentitiesRoute = IdentitiesRouteImport.update({
   id: '/identities',
   path: '/identities',
@@ -72,6 +79,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AmlRoute = AmlRouteImport.update({
+  id: '/aml',
+  path: '/aml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -85,11 +97,13 @@ const ProfileIdRoute = ProfileIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/aml': typeof AmlRoute
   '/auth': typeof AuthRoute
   '/cameras': typeof CamerasRoute
   '/enroll': typeof EnrollRoute
   '/identify': typeof IdentifyRoute
   '/identities': typeof IdentitiesRoute
+  '/kyc': typeof KycRoute
   '/live': typeof LiveRoute
   '/log': typeof LogRoute
   '/network': typeof NetworkRoute
@@ -99,11 +113,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/aml': typeof AmlRoute
   '/auth': typeof AuthRoute
   '/cameras': typeof CamerasRoute
   '/enroll': typeof EnrollRoute
   '/identify': typeof IdentifyRoute
   '/identities': typeof IdentitiesRoute
+  '/kyc': typeof KycRoute
   '/live': typeof LiveRoute
   '/log': typeof LogRoute
   '/network': typeof NetworkRoute
@@ -114,11 +130,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/aml': typeof AmlRoute
   '/auth': typeof AuthRoute
   '/cameras': typeof CamerasRoute
   '/enroll': typeof EnrollRoute
   '/identify': typeof IdentifyRoute
   '/identities': typeof IdentitiesRoute
+  '/kyc': typeof KycRoute
   '/live': typeof LiveRoute
   '/log': typeof LogRoute
   '/network': typeof NetworkRoute
@@ -130,11 +148,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/aml'
     | '/auth'
     | '/cameras'
     | '/enroll'
     | '/identify'
     | '/identities'
+    | '/kyc'
     | '/live'
     | '/log'
     | '/network'
@@ -144,11 +164,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/aml'
     | '/auth'
     | '/cameras'
     | '/enroll'
     | '/identify'
     | '/identities'
+    | '/kyc'
     | '/live'
     | '/log'
     | '/network'
@@ -158,11 +180,13 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/aml'
     | '/auth'
     | '/cameras'
     | '/enroll'
     | '/identify'
     | '/identities'
+    | '/kyc'
     | '/live'
     | '/log'
     | '/network'
@@ -173,11 +197,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AmlRoute: typeof AmlRoute
   AuthRoute: typeof AuthRoute
   CamerasRoute: typeof CamerasRoute
   EnrollRoute: typeof EnrollRoute
   IdentifyRoute: typeof IdentifyRoute
   IdentitiesRoute: typeof IdentitiesRoute
+  KycRoute: typeof KycRoute
   LiveRoute: typeof LiveRoute
   LogRoute: typeof LogRoute
   NetworkRoute: typeof NetworkRoute
@@ -223,6 +249,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LiveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kyc': {
+      id: '/kyc'
+      path: '/kyc'
+      fullPath: '/kyc'
+      preLoaderRoute: typeof KycRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/identities': {
       id: '/identities'
       path: '/identities'
@@ -258,6 +291,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/aml': {
+      id: '/aml'
+      path: '/aml'
+      fullPath: '/aml'
+      preLoaderRoute: typeof AmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -277,11 +317,13 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AmlRoute: AmlRoute,
   AuthRoute: AuthRoute,
   CamerasRoute: CamerasRoute,
   EnrollRoute: EnrollRoute,
   IdentifyRoute: IdentifyRoute,
   IdentitiesRoute: IdentitiesRoute,
+  KycRoute: KycRoute,
   LiveRoute: LiveRoute,
   LogRoute: LogRoute,
   NetworkRoute: NetworkRoute,

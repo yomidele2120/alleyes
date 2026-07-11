@@ -27,7 +27,7 @@ export function DojahLookupSheet({
 
   const run = async () => {
     if (!/^\d{8,12}$/.test(nin)) {
-      setResult({ ok: false, error: "Enter a valid NIN (8–12 digits). Sandbox: 12345678901" });
+      setResult({ ok: false, error: "Enter a valid NIN (11 digits). Sandbox: 70123456789" });
       return;
     }
     setBusy(true);
@@ -86,7 +86,7 @@ export function DojahLookupSheet({
             <input
               value={nin}
               onChange={(e) => setNin(e.target.value.replace(/\D/g, "").slice(0, 12))}
-              placeholder="NIN e.g. 12345678901"
+              placeholder="NIN e.g. 70123456789"
               inputMode="numeric"
               className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />

@@ -107,14 +107,14 @@ function NinPanel() {
       <div className="mt-2 flex gap-2">
         <input
           value={nin}
-          onChange={(e) => setNin(e.target.value.replace(/\D/g, "").slice(0, 12))}
-          placeholder="12345678901"
+          onChange={(e) => setNin(e.target.value.replace(/\D/g, "").slice(0, 11))}
+          placeholder="70123456789"
           inputMode="numeric"
           className="flex-1 rounded-md border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
         />
         <button
           onClick={submit}
-          disabled={busy || nin.length < 8}
+          disabled={busy || nin.length !== 11}
           className="glow-hover inline-flex items-center gap-1.5 rounded-md bg-primary px-5 py-2.5 text-xs font-medium uppercase tracking-[0.2em] text-primary-foreground disabled:opacity-50"
         >
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
@@ -122,7 +122,7 @@ function NinPanel() {
         </button>
       </div>
       <p className="mt-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-        Sandbox test NIN · 12345678901
+        Sandbox test NIN · 70123456789
       </p>
 
       {res && !res.ok && <ErrorNote>{res.error}</ErrorNote>}

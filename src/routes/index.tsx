@@ -262,3 +262,51 @@ function QuickLink({
     </Link>
   );
 }
+
+function ServiceCard({
+  to,
+  badge,
+  title,
+  desc,
+  icon: Icon,
+  accent,
+}: {
+  to: string;
+  badge: string;
+  title: string;
+  desc: string;
+  icon: typeof UserPlus;
+  accent?: boolean;
+}) {
+  return (
+    <Link
+      to={to}
+      className="glow-hover group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card/60 p-5"
+    >
+      <div
+        className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full blur-3xl transition-opacity group-hover:opacity-80"
+        style={{
+          background: accent ? "var(--gold)" : "var(--primary)",
+          opacity: 0.12,
+        }}
+      />
+      <div className="flex items-center justify-between">
+        <span className="rounded-lg border border-border bg-background/60 p-2">
+          <Icon
+            className="h-5 w-5"
+            strokeWidth={1.5}
+            style={{ color: accent ? "var(--gold)" : "var(--primary)" }}
+          />
+        </span>
+        <span className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground">
+          {badge}
+        </span>
+      </div>
+      <h3 className="mt-4 font-display text-xl tracking-[0.06em]">{title}</h3>
+      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{desc}</p>
+      <span className="mt-4 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.25em] text-primary">
+        Open <ArrowRight className="h-3 w-3" />
+      </span>
+    </Link>
+  );
+}

@@ -1,6 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Crosshair, Eye, Server, UserPlus } from "lucide-react";
+import {
+  ArrowRight,
+  Crosshair,
+  Eye,
+  Server,
+  UserPlus,
+  IdCard,
+  ShieldAlert,
+  Monitor,
+  ScanFace,
+} from "lucide-react";
 import { LensNav } from "@/components/lens-nav";
 import { loadIdentities, type Identity } from "@/lib/face-store";
 import { loadLog, type LogEntry } from "@/lib/detection-log";

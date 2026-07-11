@@ -95,6 +95,48 @@ function Dashboard() {
           <QuickLink to="/network" label="Network" icon={Server} />
         </section>
 
+        {/* Services */}
+        <section className="animate-fade-in mt-10">
+          <div className="mb-3 flex items-end justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-primary">Services</p>
+              <h2 className="mt-1 font-display text-2xl tracking-[0.08em]">What LENS offers</h2>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <ServiceCard
+              to="/live"
+              badge="01 · Surveillance"
+              title="Live Face Recognition"
+              desc="Watch multiple camera feeds, detect and match known identities in real time with on-device intelligence."
+              icon={Monitor}
+            />
+            <ServiceCard
+              to="/kyc"
+              badge="02 · KYC"
+              title="Identity Verification"
+              desc="Look up any Nigerian citizen against NIMC (NIN) and CBN (BVN). Government-registered name, DOB, photo, and contact."
+              icon={IdCard}
+              accent
+            />
+            <ServiceCard
+              to="/identify"
+              badge="03 · Investigate"
+              title="Identify & Match"
+              desc="Capture a face, run liveness, and match against your enrolled roster or Dojah's NIN database for instant intel."
+              icon={ScanFace}
+            />
+            <ServiceCard
+              to="/aml"
+              badge="04 · AML"
+              title="Sanctions & PEP Screening"
+              desc="Screen names against global watchlists — sanctions, politically exposed persons, and adverse media."
+              icon={ShieldAlert}
+              accent
+            />
+          </div>
+        </section>
+
         {/* Quick search */}
         <section className="animate-fade-in mt-8">
           <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-muted-foreground">

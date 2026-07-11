@@ -122,7 +122,7 @@ function NinPanel() {
         </button>
       </div>
       <p className="mt-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-        Sandbox test NIN · 12345678901
+        Sandbox test NIN · 70123456789
       </p>
 
       {res && !res.ok && <ErrorNote>{res.error}</ErrorNote>}

@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import {
   Eye,
   Home,
@@ -13,24 +14,31 @@ import {
   LogIn,
   IdCard,
   ShieldAlert,
+  ChevronDown,
+  LayoutGrid,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { backendStatusLabel, backendStatusTone } from "@/lib/lens-backend";
 import { useBackendHealth } from "@/hooks/use-backend-health";
 
-const ITEMS = [
+// Main features (shown in top nav + mobile bottom nav)
+const MAIN = [
   { to: "/", label: "Dashboard", icon: Home },
-  { to: "/live", label: "Live View", icon: Monitor },
-  { to: "/search", label: "Search", icon: Crosshair },
-  { to: "/identities", label: "Identities", icon: Users },
-  { to: "/log", label: "Log", icon: ScrollText },
-  { to: "/cameras", label: "Cameras", icon: Server },
-  { to: "/enroll", label: "Enroll", icon: UserPlus },
+  { to: "/live", label: "Live", icon: Monitor },
   { to: "/identify", label: "Identify", icon: Eye },
-  { to: "/kyc", label: "KYC", icon: IdCard },
-  { to: "/aml", label: "AML", icon: ShieldAlert },
-  { to: "/settings", label: "Settings", icon: SettingsIcon },
+  { to: "/search", label: "Search", icon: Crosshair },
+] as const;
+
+// Services (grouped under a dropdown)
+const SERVICES = [
+  { to: "/kyc", label: "KYC · Identity", icon: IdCard, desc: "NIN / BVN lookup" },
+  { to: "/aml", label: "AML · Screening", icon: ShieldAlert, desc: "Sanctions & PEP" },
+  { to: "/enroll", label: "Enroll Face", icon: UserPlus, desc: "Register identities" },
+  { to: "/identities", label: "Identities", icon: Users, desc: "Enrolled roster" },
+  { to: "/cameras", label: "Cameras", icon: Server, desc: "Feeds & devices" },
+  { to: "/log", label: "Detection Log", icon: ScrollText, desc: "Recent hits" },
+  { to: "/settings", label: "Settings", icon: SettingsIcon, desc: "Preferences" },
 ] as const;
 
 export function LensNav() {
@@ -39,6 +47,22 @@ export function LensNav() {
   const { status } = useBackendHealth();
   const label = backendStatusLabel(status);
   const tone = backendStatusTone(status);
+  const [openServices, setOpenServices] = useState(false);
+  const [openMobileSvc, setOpenMobileSvc] = useState(false);
+  const ddRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (ddRef.current && !ddRef.current.contains(e.target as Node)) setOpenServices(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  useEffect(() => {
+    setOpenServices(false);
+    setOpenMobileSvc(false);
+  }, [pathname]);
 
   const toneClasses =
     tone === "emerald"
@@ -48,6 +72,8 @@ export function LensNav() {
         : tone === "red"
           ? "border-red-500/30 bg-red-500/10 text-red-300"
           : "border-border bg-background/40 text-muted-foreground";
+
+  const servicesActive = SERVICES.some((s) => s.to === pathname);
 
   return (
     <>
@@ -60,7 +86,7 @@ export function LensNav() {
           </Link>
           {/* Desktop inline nav */}
           <nav className="hidden md:flex items-center gap-4">
-            {ITEMS.map(({ to, label }) => {
+            {MAIN.map(({ to, label }) => {
               const active = pathname === to;
               return (
                 <Link
@@ -74,6 +100,47 @@ export function LensNav() {
                 </Link>
               );
             })}
+            <div className="relative" ref={ddRef}>
+              <button
+                onClick={() => setOpenServices((v) => !v)}
+                className={`inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.2em] transition-colors ${
+                  servicesActive || openServices
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                aria-haspopup="menu"
+                aria-expanded={openServices}
+              >
+                Services
+                <ChevronDown className={`h-3 w-3 transition-transform ${openServices ? "rotate-180" : ""}`} />
+              </button>
+              {openServices && (
+                <div className="glass absolute right-0 top-full mt-2 w-72 rounded-2xl p-2 shadow-2xl">
+                  {SERVICES.map(({ to, label, icon: Icon, desc }) => {
+                    const active = pathname === to;
+                    return (
+                      <Link
+                        key={to}
+                        to={to}
+                        className={`flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors ${
+                          active ? "bg-primary/15" : "hover:bg-background/60"
+                        }`}
+                      >
+                        <span className="mt-0.5 rounded-lg border border-border bg-background/60 p-1.5">
+                          <Icon className="h-3.5 w-3.5 text-primary" strokeWidth={1.6} />
+                        </span>
+                        <span className="flex-1">
+                          <span className="block text-[11px] uppercase tracking-[0.18em] text-foreground">
+                            {label}
+                          </span>
+                          <span className="block text-[10px] text-muted-foreground">{desc}</span>
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </nav>
           <div className="flex items-center gap-2 md:gap-3">
             <span
@@ -108,14 +175,14 @@ export function LensNav() {
                 className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
                 aria-label="Sign out"
               >
-                <LogOut className="h-3.5 w-3.5" /> Sign out
+                <LogOut className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Sign out</span>
               </button>
             ) : (
               <Link
                 to="/auth"
                 className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-primary"
               >
-                <LogIn className="h-3.5 w-3.5" /> Sign in
+                <LogIn className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Sign in</span>
               </Link>
             )}
           </div>
@@ -127,16 +194,46 @@ export function LensNav() {
         )}
       </header>
 
-      {/* Mobile bottom nav (compact, scrolls horizontally) */}
+      {/* Mobile services sheet */}
+      {openMobileSvc && (
+        <div
+          className="fixed inset-0 z-40 bg-background/70 backdrop-blur-sm md:hidden"
+          onClick={() => setOpenMobileSvc(false)}
+        >
+          <div
+            className="glass absolute bottom-20 left-1/2 w-[92vw] max-w-md -translate-x-1/2 rounded-2xl p-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="px-2 pb-2 text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+              Services
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {SERVICES.map(({ to, label, icon: Icon, desc }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  className="flex flex-col gap-1 rounded-xl border border-border bg-card/60 p-3"
+                >
+                  <Icon className="h-4 w-4 text-primary" strokeWidth={1.6} />
+                  <span className="mt-1 text-[11px] uppercase tracking-[0.14em]">{label}</span>
+                  <span className="text-[10px] text-muted-foreground">{desc}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile bottom nav — 4 main + services trigger */}
       <nav className="fixed bottom-3 left-1/2 z-40 -translate-x-1/2 md:hidden max-w-[96vw]">
-        <div className="glass flex items-center gap-1 overflow-x-auto rounded-2xl px-2 py-2 no-scrollbar">
-          {ITEMS.map(({ to, label, icon: Icon }) => {
+        <div className="glass flex items-center gap-1 rounded-2xl px-2 py-2">
+          {MAIN.map(({ to, label, icon: Icon }) => {
             const active = pathname === to;
             return (
               <Link
                 key={to}
                 to={to}
-                className={`flex flex-col items-center gap-0.5 rounded-xl px-2.5 py-1.5 transition-colors flex-shrink-0 ${
+                className={`flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 transition-colors ${
                   active ? "bg-primary/15 text-primary" : "text-muted-foreground"
                 }`}
                 aria-label={label}
@@ -146,6 +243,16 @@ export function LensNav() {
               </Link>
             );
           })}
+          <button
+            onClick={() => setOpenMobileSvc((v) => !v)}
+            className={`flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 transition-colors ${
+              servicesActive || openMobileSvc ? "bg-primary/15 text-primary" : "text-muted-foreground"
+            }`}
+            aria-label="Services"
+          >
+            <LayoutGrid className="h-4 w-4" strokeWidth={1.6} />
+            <span className="text-[9px] uppercase tracking-[0.12em]">Services</span>
+          </button>
         </div>
       </nav>
     </>

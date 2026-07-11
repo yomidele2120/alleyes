@@ -1,6 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Crosshair, Eye, Server, UserPlus } from "lucide-react";
+import {
+  ArrowRight,
+  Crosshair,
+  Eye,
+  Server,
+  UserPlus,
+  IdCard,
+  ShieldAlert,
+  Monitor,
+  ScanFace,
+} from "lucide-react";
 import { LensNav } from "@/components/lens-nav";
 import { loadIdentities, type Identity } from "@/lib/face-store";
 import { loadLog, type LogEntry } from "@/lib/detection-log";
@@ -83,6 +93,48 @@ function Dashboard() {
           <QuickLink to="/identify" label="Identify" icon={Eye} />
           <QuickLink to="/search" label="Search" icon={Crosshair} />
           <QuickLink to="/network" label="Network" icon={Server} />
+        </section>
+
+        {/* Services */}
+        <section className="animate-fade-in mt-10">
+          <div className="mb-3 flex items-end justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-primary">Services</p>
+              <h2 className="mt-1 font-display text-2xl tracking-[0.08em]">What LENS offers</h2>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <ServiceCard
+              to="/live"
+              badge="01 · Surveillance"
+              title="Live Face Recognition"
+              desc="Watch multiple camera feeds, detect and match known identities in real time with on-device intelligence."
+              icon={Monitor}
+            />
+            <ServiceCard
+              to="/kyc"
+              badge="02 · KYC"
+              title="Identity Verification"
+              desc="Look up any Nigerian citizen against NIMC (NIN) and CBN (BVN). Government-registered name, DOB, photo, and contact."
+              icon={IdCard}
+              accent
+            />
+            <ServiceCard
+              to="/identify"
+              badge="03 · Investigate"
+              title="Identify & Match"
+              desc="Capture a face, run liveness, and match against your enrolled roster or Dojah's NIN database for instant intel."
+              icon={ScanFace}
+            />
+            <ServiceCard
+              to="/aml"
+              badge="04 · AML"
+              title="Sanctions & PEP Screening"
+              desc="Screen names against global watchlists — sanctions, politically exposed persons, and adverse media."
+              icon={ShieldAlert}
+              accent
+            />
+          </div>
         </section>
 
         {/* Quick search */}
@@ -207,6 +259,54 @@ function QuickLink({
         {label}
       </span>
       <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+    </Link>
+  );
+}
+
+function ServiceCard({
+  to,
+  badge,
+  title,
+  desc,
+  icon: Icon,
+  accent,
+}: {
+  to: string;
+  badge: string;
+  title: string;
+  desc: string;
+  icon: typeof UserPlus;
+  accent?: boolean;
+}) {
+  return (
+    <Link
+      to={to}
+      className="glow-hover group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card/60 p-5"
+    >
+      <div
+        className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full blur-3xl transition-opacity group-hover:opacity-80"
+        style={{
+          background: accent ? "var(--gold)" : "var(--primary)",
+          opacity: 0.12,
+        }}
+      />
+      <div className="flex items-center justify-between">
+        <span className="rounded-lg border border-border bg-background/60 p-2">
+          <Icon
+            className="h-5 w-5"
+            strokeWidth={1.5}
+            style={{ color: accent ? "var(--gold)" : "var(--primary)" }}
+          />
+        </span>
+        <span className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground">
+          {badge}
+        </span>
+      </div>
+      <h3 className="mt-4 font-display text-xl tracking-[0.06em]">{title}</h3>
+      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{desc}</p>
+      <span className="mt-4 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.25em] text-primary">
+        Open <ArrowRight className="h-3 w-3" />
+      </span>
     </Link>
   );
 }

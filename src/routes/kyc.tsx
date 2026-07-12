@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, ShieldCheck, AlertTriangle, IdCard, Fingerprint } from "lucide-react";
+import { Loader2, ShieldCheck, AlertTriangle, IdCard, Fingerprint, Download } from "lucide-react";
 import {
   dojahVerifyNin,
   dojahLookupBvn,
   type DojahVerifyResult,
   type DojahBvnResult,
 } from "@/lib/dojah.functions";
+import { exportLookupPdf } from "@/lib/pdf-export";
 
 export const Route = createFileRoute("/kyc")({
   head: () => ({

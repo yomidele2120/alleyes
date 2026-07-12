@@ -42,6 +42,13 @@ function KycPage() {
           Look up any Nigerian citizen against the NIMC (NIN) or CBN (BVN) database. Returns
           government-registered name, DOB, photo, and contact record.
         </p>
+        <div className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] leading-relaxed text-amber-200">
+          <strong className="uppercase tracking-[0.2em]">Sandbox mode</strong> — the Dojah
+          sandbox only accepts fixed test values (NIN <code>70123456789</code>, BVN{" "}
+          <code>22222222222</code>). Real Nigerian NINs/BVNs will return "record not found" here.
+          To query live records, switch <code>DOJAH_BASE</code> to <code>https://api.dojah.io</code>{" "}
+          and use live Dojah credentials.
+        </div>
       </div>
 
       <div className="mb-6 inline-flex rounded-xl border border-border bg-card/60 p-1">

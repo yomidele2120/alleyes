@@ -148,8 +148,8 @@ function NinPanel() {
               </p>
             </div>
           </div>
-          <RecordGrid
-            rows={[
+          {(() => {
+            const rows: Array<[string, string | undefined]> = [
               ["DOB", res.record.date_of_birth],
               ["Gender", res.record.gender],
               ["Phone", res.record.phone_number],
@@ -159,8 +159,26 @@ function NinPanel() {
               ["Address", res.record.address],
               ["Email", res.record.email],
               ["Marital Status", res.record.marital_status],
-            ]}
-          />
+            ];
+            const fullName = [res.record.first_name, res.record.middle_name, res.record.last_name].filter(Boolean).join(" ");
+            return (
+              <>
+                <RecordGrid rows={rows} />
+                <ExportBtn
+                  onClick={() =>
+                    exportLookupPdf({
+                      title: "NIN Verification Report",
+                      reference: `NIN · ${res.record?.nin || nin}`,
+                      fullName,
+                      photoBase64: res.record?.photo,
+                      rows,
+                      filename: `LENS-NIN-${res.record?.nin || nin}.pdf`,
+                    })
+                  }
+                />
+              </>
+            );
+          })()}
         </div>
       )}
     </div>

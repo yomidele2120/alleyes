@@ -251,8 +251,8 @@ function BvnPanel() {
               </p>
             </div>
           </div>
-          <RecordGrid
-            rows={[
+          {(() => {
+            const rows: Array<[string, string | undefined]> = [
               ["DOB", res.record.date_of_birth],
               ["Gender", res.record.gender],
               ["Phone 1", res.record.phone_number1],
@@ -265,11 +265,41 @@ function BvnPanel() {
               ["Enrollment Bank", res.record.enrollment_bank],
               ["Enrollment Branch", res.record.enrollment_branch],
               ["Address", res.record.residential_address],
-            ]}
-          />
+            ];
+            const fullName = [res.record.first_name, res.record.middle_name, res.record.last_name].filter(Boolean).join(" ");
+            return (
+              <>
+                <RecordGrid rows={rows} />
+                <ExportBtn
+                  onClick={() =>
+                    exportLookupPdf({
+                      title: "BVN Verification Report",
+                      reference: `BVN · ${res.record?.bvn || bvn}`,
+                      fullName,
+                      photoBase64: res.record?.image,
+                      rows,
+                      filename: `LENS-BVN-${res.record?.bvn || bvn}.pdf`,
+                    })
+                  }
+                />
+              </>
+            );
+          })()}
         </div>
       )}
     </div>
+  );
+}
+
+function ExportBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="mt-5 inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-primary hover:bg-primary/20"
+    >
+      <Download className="h-3.5 w-3.5" />
+      Export PDF
+    </button>
   );
 }
 

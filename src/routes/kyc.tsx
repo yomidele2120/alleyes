@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, ShieldCheck, AlertTriangle, IdCard, Fingerprint } from "lucide-react";
+import { Loader2, ShieldCheck, AlertTriangle, IdCard, Fingerprint, Download } from "lucide-react";
 import {
   dojahVerifyNin,
   dojahLookupBvn,
   type DojahVerifyResult,
   type DojahBvnResult,
 } from "@/lib/dojah.functions";
+import { exportLookupPdf } from "@/lib/pdf-export";
 
 export const Route = createFileRoute("/kyc")({
   head: () => ({
@@ -41,6 +42,13 @@ function KycPage() {
           Look up any Nigerian citizen against the NIMC (NIN) or CBN (BVN) database. Returns
           government-registered name, DOB, photo, and contact record.
         </p>
+        <div className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] leading-relaxed text-amber-200">
+          <strong className="uppercase tracking-[0.2em]">Sandbox mode</strong> — the Dojah
+          sandbox only accepts fixed test values (NIN <code>70123456789</code>, BVN{" "}
+          <code>22222222222</code>). Real Nigerian NINs/BVNs will return "record not found" here.
+          To query live records, switch <code>DOJAH_BASE</code> to <code>https://api.dojah.io</code>{" "}
+          and use live Dojah credentials.
+        </div>
       </div>
 
       <div className="mb-6 inline-flex rounded-xl border border-border bg-card/60 p-1">
@@ -147,8 +155,8 @@ function NinPanel() {
               </p>
             </div>
           </div>
-          <RecordGrid
-            rows={[
+          {(() => {
+            const rows: Array<[string, string | undefined]> = [
               ["DOB", res.record.date_of_birth],
               ["Gender", res.record.gender],
               ["Phone", res.record.phone_number],
@@ -158,8 +166,26 @@ function NinPanel() {
               ["Address", res.record.address],
               ["Email", res.record.email],
               ["Marital Status", res.record.marital_status],
-            ]}
-          />
+            ];
+            const fullName = [res.record.first_name, res.record.middle_name, res.record.last_name].filter(Boolean).join(" ");
+            return (
+              <>
+                <RecordGrid rows={rows} />
+                <ExportBtn
+                  onClick={() =>
+                    exportLookupPdf({
+                      title: "NIN Verification Report",
+                      reference: `NIN · ${res.record?.nin || nin}`,
+                      fullName,
+                      photoBase64: res.record?.photo,
+                      rows,
+                      filename: `LENS-NIN-${res.record?.nin || nin}.pdf`,
+                    })
+                  }
+                />
+              </>
+            );
+          })()}
         </div>
       )}
     </div>
@@ -232,8 +258,8 @@ function BvnPanel() {
               </p>
             </div>
           </div>
-          <RecordGrid
-            rows={[
+          {(() => {
+            const rows: Array<[string, string | undefined]> = [
               ["DOB", res.record.date_of_birth],
               ["Gender", res.record.gender],
               ["Phone 1", res.record.phone_number1],
@@ -246,11 +272,41 @@ function BvnPanel() {
               ["Enrollment Bank", res.record.enrollment_bank],
               ["Enrollment Branch", res.record.enrollment_branch],
               ["Address", res.record.residential_address],
-            ]}
-          />
+            ];
+            const fullName = [res.record.first_name, res.record.middle_name, res.record.last_name].filter(Boolean).join(" ");
+            return (
+              <>
+                <RecordGrid rows={rows} />
+                <ExportBtn
+                  onClick={() =>
+                    exportLookupPdf({
+                      title: "BVN Verification Report",
+                      reference: `BVN · ${res.record?.bvn || bvn}`,
+                      fullName,
+                      photoBase64: res.record?.image,
+                      rows,
+                      filename: `LENS-BVN-${res.record?.bvn || bvn}.pdf`,
+                    })
+                  }
+                />
+              </>
+            );
+          })()}
         </div>
       )}
     </div>
+  );
+}
+
+function ExportBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="mt-5 inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-primary hover:bg-primary/20"
+    >
+      <Download className="h-3.5 w-3.5" />
+      Export PDF
+    </button>
   );
 }
 
